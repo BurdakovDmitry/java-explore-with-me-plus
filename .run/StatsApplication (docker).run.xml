@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="StatApplication (docker)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+        <module name="stats-server" />
+        <option name="SPRING_BOOT_MAIN_CLASS" value="ewm.StatsServerApplication" />
+        <option name="ACTIVE_PROFILES" value="docker" />
+        <option name="ALTERNATIVE_JRE_PATH" value="21" />
+        <method v="2">
+            <option name="Make" enabled="true" />
+        </method>
+    </configuration>
+</component>
