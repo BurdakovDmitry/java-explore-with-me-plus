@@ -16,7 +16,7 @@ public record HitDto(
         @NotBlank(message = "IP-адрес пользователя, осуществившего запрос, не может быть пустым")
         String ip,
 
-        @NotNull(message = "Дада не может быть пустой")
+        @NotNull(message = "Дата не может быть пустой")
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         LocalDateTime timestamp) {
 }
