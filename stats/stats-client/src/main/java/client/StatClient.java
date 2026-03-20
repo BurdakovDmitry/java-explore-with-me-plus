@@ -42,7 +42,7 @@ public class StatClient {
     public List<StatsDto> get(ParamDto paramDto) {
         List<StatsDto> stats;
 
-        Optional<List<String>> uris = paramDto.uris().isEmpty() ? null : Optional.of(paramDto.uris());
+        Optional<List<String>> uris = paramDto.uris() == null || paramDto.uris().isEmpty() ? Optional.empty() : Optional.of(paramDto.uris());
 
         try {
             stats = restClient.get()
