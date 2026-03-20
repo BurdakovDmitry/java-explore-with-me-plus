@@ -10,12 +10,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Component
 public class StatClient {
     final RestClient restClient;
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public StatClient() {
         this.restClient = RestClient.builder()
@@ -38,14 +41,17 @@ public class StatClient {
 
     public List<StatsDto> get(ParamDto paramDto) {
         List<StatsDto> stats;
+
+        Optional<List<String>> uris = paramDto.uris().isEmpty() ? null : Optional.of(paramDto.uris());
+
         try {
             stats = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/stats")
-                            .queryParam("start ", paramDto.start())
-                            .queryParam("end", paramDto.end())
-                            .queryParam("uris", paramDto.uris())
-                            .queryParam("unique", paramDto.unique())
+                            .queryParam("start", paramDto.start().format(formatter))
+                            .queryParam("end", paramDto.end().format(formatter))
+                            .queryParamIfPresent("uris", uris)
+                            .queryParamIfPresent("unique", Optional.of(paramDto.unique()))
                             .build())
                     .header("Content-Type", "application/json")
                     .retrieve()
