@@ -4,6 +4,7 @@ import ewm.HitDto;
 import ewm.ParamDto;
 import ewm.StatsDto;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +19,11 @@ import java.util.Optional;
 @Component
 public class StatClient {
     final RestClient restClient;
-    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public StatClient() {
+    public StatClient(@Value("${stats.server.url}") String baseUrl) {
         this.restClient = RestClient.builder()
-                .baseUrl("http://localhost:9090")
+                .baseUrl(baseUrl)
                 .build();
     }
 
@@ -42,16 +43,14 @@ public class StatClient {
     public List<StatsDto> get(ParamDto paramDto) {
         List<StatsDto> stats;
 
-        Optional<List<String>> uris = paramDto.uris() == null || paramDto.uris().isEmpty() ? Optional.empty() : Optional.of(paramDto.uris());
-
         try {
             stats = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/stats")
                             .queryParam("start", paramDto.start().format(formatter))
                             .queryParam("end", paramDto.end().format(formatter))
-                            .queryParamIfPresent("uris", uris)
-                            .queryParamIfPresent("unique", Optional.of(paramDto.unique()))
+                            .queryParamIfPresent("uris", Optional.ofNullable(paramDto.uris()))
+                            .queryParamIfPresent("unique", Optional.ofNullable(paramDto.unique()))
                             .build())
                     .header("Content-Type", "application/json")
                     .retrieve()
@@ -62,6 +61,5 @@ public class StatClient {
             stats = List.of(new StatsDto("ewm-main-service", "/fake-uri", 0L));
         }
         return stats;
-
     }
 }
