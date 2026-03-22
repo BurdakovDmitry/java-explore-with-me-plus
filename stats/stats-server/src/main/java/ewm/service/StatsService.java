@@ -34,12 +34,14 @@ public class StatsService {
                     " не должны быть позже даты и времени конца " + paramDto.end());
         }
 
+        boolean isUnique = paramDto.unique() != null && paramDto.unique();
+
         if (paramDto.uris() == null || paramDto.uris().isEmpty()) {
-            return paramDto.unique()
+            return isUnique
                     ? statsRepository.getStatsUnique(paramDto.start(), paramDto.end())
                     : statsRepository.getStats(paramDto.start(), paramDto.end());
         } else {
-            return paramDto.unique()
+            return isUnique
                     ? statsRepository.getStatsByUriUnique(paramDto.start(), paramDto.end(), paramDto.uris())
                     : statsRepository.getStatsByUri(paramDto.start(), paramDto.end(), paramDto.uris());
         }

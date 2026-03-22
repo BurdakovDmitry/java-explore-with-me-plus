@@ -17,5 +17,5 @@ public record ParamDto(
 
         List<String> uris,
 
-        boolean unique) {
+        Boolean unique) {
 }
