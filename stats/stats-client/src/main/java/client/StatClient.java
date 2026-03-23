@@ -43,13 +43,17 @@ public class StatClient {
     public List<StatsDto> get(ParamDto paramDto) {
         List<StatsDto> stats;
 
+        Optional<List<String>> uris = (paramDto.uris() == null || paramDto.uris().isEmpty())
+                ? Optional.empty()
+                : Optional.of(paramDto.uris());
+
         try {
             stats = restClient.get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/stats")
                             .queryParam("start", paramDto.start().format(formatter))
                             .queryParam("end", paramDto.end().format(formatter))
-                            .queryParamIfPresent("uris", Optional.ofNullable(paramDto.uris()))
+                            .queryParamIfPresent("uris", uris)
                             .queryParamIfPresent("unique", Optional.ofNullable(paramDto.unique()))
                             .build())
                     .header("Content-Type", "application/json")
