@@ -22,7 +22,9 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
 
     @Override
     public List<CompilationDto> getCompilations(Boolean pinned, int from, int size) {
+
         Pageable pageable = PageRequest.of(from / size, size);
+
         List<Compilation> compilations;
 
         if (pinned != null) {
