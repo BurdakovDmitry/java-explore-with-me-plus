@@ -1,4 +1,4 @@
-package ewm.user.controller;
+package ewm.user.dto;
 
 import java.util.List;
 
