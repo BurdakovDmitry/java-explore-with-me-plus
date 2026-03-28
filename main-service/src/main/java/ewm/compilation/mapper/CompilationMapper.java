@@ -1,21 +1,30 @@
 package ewm.compilation.mapper;
 
 import ewm.compilation.dto.CompilationDto;
-import ewm.compilation.dto.CompilationPostDto;
+import ewm.compilation.dto.NewCompilationDto;
+import ewm.compilation.dto.UpdateCompilationDto;
 import ewm.compilation.model.Compilation;
+import ewm.event.mapper.EventMapper;
 import ewm.event.service.AdminEventService;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
-@Mapper(componentModel = "spring")
-public abstract class CompilationMapper {
+import java.util.Collections;
 
-    @Autowired
-    protected AdminEventService adminEventService;
+@Mapper(componentModel = "spring",
+        uses = {AdminEventService.class, EventMapper.class},
+        imports = Collections.class)
+public interface CompilationMapper {
 
-    public abstract CompilationDto compilationToDto(Compilation compilation);
+    CompilationDto compilationToDto(Compilation compilation);
 
-    @Mapping(target = "events", expression = "java(adminEventService.findByIds(compilationPostDto.events()))")
-    public abstract Compilation postDtoToCompilation(CompilationPostDto compilationPostDto);
+    @Mapping(target = "events", source = "newCompilationDto.events")
+    @Mapping(target = "pinned", source = "newCompilationDto.pinned", defaultExpression  = "java(false)")
+    Compilation postDtoToCompilation(NewCompilationDto newCompilationDto);
+
+    @Mapping(target = "events", source = "updCompilationDto.events", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "pinned", source = "updCompilationDto.pinned", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "title", source = "updCompilationDto.title", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    Compilation updateDtoToCompilation(UpdateCompilationDto updCompilationDto);
 }
