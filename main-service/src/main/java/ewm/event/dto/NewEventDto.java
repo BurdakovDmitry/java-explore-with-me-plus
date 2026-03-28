@@ -1,5 +1,6 @@
-package ewm.common.dto;
+package ewm.event.dto;
 
+import ewm.common.dto.LocationDto;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

@@ -1,5 +1,7 @@
-package ewm.common.dto;
+package ewm.event.dto;
 
+import ewm.category.dto.CategoryDto;
+import ewm.user.dto.UserShortDto;
 import lombok.Data;
 
 @Data

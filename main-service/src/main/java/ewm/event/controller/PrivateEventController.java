@@ -1,8 +1,8 @@
 package ewm.event.controller;
 
-import ewm.common.dto.EventFullDto;
-import ewm.common.dto.EventShortDto;
-import ewm.common.dto.NewEventDto;
+import ewm.event.dto.EventFullDto;
+import ewm.event.dto.EventShortDto;
+import ewm.event.dto.NewEventDto;
 import ewm.event.dto.UpdateEventUserRequest;
 import ewm.event.service.PrivateEventService;
 import jakarta.validation.Valid;

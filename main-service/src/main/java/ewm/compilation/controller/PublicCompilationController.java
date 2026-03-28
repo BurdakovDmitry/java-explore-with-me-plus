@@ -1,7 +1,7 @@
-package ewm.pub.compilation.controller;
+package ewm.compilation.controller;
 
-import ewm.pub.compilation.dto.CompilationDto;
-import ewm.pub.compilation.service.PublicCompilationService;
+import ewm.compilation.dto.CompilationDto;
+import ewm.compilation.service.PublicCompilationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;

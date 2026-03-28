@@ -1,4 +1,4 @@
-package ewm.common.model;
+package ewm.category.dto.model;
 
 import jakarta.persistence.*;
 import lombok.Data;

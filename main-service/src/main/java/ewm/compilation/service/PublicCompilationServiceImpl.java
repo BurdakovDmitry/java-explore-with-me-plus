@@ -1,9 +1,9 @@
-package ewm.pub.compilation.service;
+package ewm.compilation.service;
 
-import ewm.common.model.Compilation;
-import ewm.common.model.CompilationRepository;
+import ewm.compilation.model.Compilation;
+import ewm.compilation.repository.CompilationRepository;
 import ewm.exception.NotFoundException;
-import ewm.pub.compilation.dto.CompilationDto;
+import ewm.compilation.dto.CompilationDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -16,15 +16,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PublicCompilationServiceImpl implements PublicCompilationService {
+public class PublicCompilationServiceImpl implements ewm.compilation.service.PublicCompilationService {
 
     private final CompilationRepository compilationRepository;
 
     @Override
     public List<CompilationDto> getCompilations(Boolean pinned, int from, int size) {
-
         Pageable pageable = PageRequest.of(from / size, size);
-
         List<Compilation> compilations;
 
         if (pinned != null) {
@@ -46,10 +44,11 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
     }
 
     private CompilationDto toDto(Compilation compilation) {
-        CompilationDto dto = new CompilationDto();
-        dto.setId(compilation.getId());
-        dto.setTitle(compilation.getTitle());
-        dto.setPinned(compilation.getPinned());
-        return dto;
+        return new CompilationDto(
+                null,                           // events
+                compilation.getId(),
+                compilation.getPinned(),
+                compilation.getTitle()
+        );
     }
 }

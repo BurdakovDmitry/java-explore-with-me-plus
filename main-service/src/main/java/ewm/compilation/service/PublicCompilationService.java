@@ -1,6 +1,6 @@
-package ewm.pub.compilation.service;
+package ewm.compilation.service;
 
-import ewm.pub.compilation.dto.CompilationDto;
+import ewm.compilation.dto.CompilationDto;
 import java.util.List;
 
 public interface PublicCompilationService {
@@ -8,4 +8,5 @@ public interface PublicCompilationService {
     List<CompilationDto> getCompilations(Boolean pinned, int from, int size);
 
     CompilationDto getCompilation(Long compId);
+
 }

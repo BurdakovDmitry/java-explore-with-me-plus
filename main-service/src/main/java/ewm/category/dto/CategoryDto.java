@@ -1,9 +1,9 @@
-package ewm.common.dto;
+package ewm.category.dto;
 
 import lombok.Data;
 
 @Data
-public class UserShortDto {
+public class CategoryDto {
     private Long id;
     private String name;
 }

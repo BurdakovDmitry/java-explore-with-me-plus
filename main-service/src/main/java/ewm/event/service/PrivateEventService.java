@@ -1,8 +1,8 @@
 package ewm.event.service;
 
-import ewm.common.dto.EventFullDto;
-import ewm.common.dto.EventShortDto;
-import ewm.common.dto.NewEventDto;
+import ewm.event.dto.EventFullDto;
+import ewm.event.dto.EventShortDto;
+import ewm.event.dto.NewEventDto;
 import ewm.event.dto.UpdateEventUserRequest;
 
 import java.util.List;
