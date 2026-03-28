@@ -2,7 +2,7 @@ package ewm.user.service;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import ewm.exception.NotFoundException;
-import ewm.user.controller.AdminUserParam;
+import ewm.user.dto.AdminUserParam;
 import ewm.user.dto.UserDto;
 import ewm.user.dto.UserPostDto;
 import ewm.user.mapper.UserMapper;
@@ -12,14 +12,15 @@ import ewm.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 @Slf4j
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class AdminUserServiceImpl implements AdminUserService {
     private final UserRepository userRepository;
@@ -28,15 +29,17 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Override
     public UserDto create(UserPostDto userPostDto) {
         User user = userMapper.userPostDtoToUser(userPostDto);
-        user = userRepository.save(user);
-        log.info("Create new user {}", user);
-        return userMapper.userToUserDto(user);
+        User savedUser = userRepository.save(user);
+        log.info("Created new user {}", savedUser);
+        return userMapper.userToUserDto(savedUser);
     }
 
+    @Override
+    @Transactional(readOnly = true)
     public List<UserDto> findAll(AdminUserParam params) {
         Iterable<User> users;
 
-        if (params.ids() == null) {
+        if (params.ids() == null || params.ids().isEmpty()) {
             log.info("Return all users");
             users = userRepository.findAll();
         } else {
@@ -50,25 +53,20 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .map(userMapper::userToUserDto)
                 .toList();
 
-        if (params.from() != null) {
-            usersDto = usersDto.subList(params.from(), usersDto.size());
-        }
-
-        if (params.size() != null) {
+        // TODO: переделать на запрос из БД
+        usersDto = usersDto.subList(params.from(), usersDto.size());
+        if (params.size() < usersDto.size()) {
             usersDto = usersDto.subList(0, params.size());
         }
 
         return usersDto;
     }
 
+    @Override
     public void delete(Long userId) {
-        Optional<User> user = userRepository.findById(userId);
-
-        if (user.isEmpty()) {
-            throw new NotFoundException(String.format("User with id=%d was not found", userId));
-        } else {
-            log.info("Delete user with id {}", userId);
-            userRepository.delete(user.get());
-        }
+        User user = userRepository.findById(userId).orElseThrow(
+                () ->  new NotFoundException(String.format("User with id=%d was not found", userId)));
+        log.info("Delete user with id {}", userId);
+        userRepository.delete(user);
     }
 }

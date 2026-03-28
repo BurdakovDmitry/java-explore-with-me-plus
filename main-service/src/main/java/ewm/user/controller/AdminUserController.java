@@ -1,5 +1,6 @@
 package ewm.user.controller;
 
+import ewm.user.dto.AdminUserParam;
 import ewm.user.dto.UserDto;
 import ewm.user.dto.UserPostDto;
 import ewm.user.service.AdminUserService;
@@ -16,19 +17,18 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/admin/users")
 public class AdminUserController {
-    public final AdminUserService adminUserService;
+    private final AdminUserService adminUserService;
 
     @GetMapping
     public List<UserDto> findAll(@RequestParam(required = false) List<Long> ids,
-                                 @RequestParam(required = false) Integer from,
-                                 @RequestParam(required = false) Integer size) {
+                                 @RequestParam(required = false, defaultValue = "0") Integer from,
+                                 @RequestParam(required = false, defaultValue = "10") Integer size) {
         AdminUserParam params = new AdminUserParam(ids, from, size);
         return adminUserService.findAll(params);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Validated()
     public UserDto create(@Valid @RequestBody UserPostDto user) {
         return adminUserService.create(user);
     }
