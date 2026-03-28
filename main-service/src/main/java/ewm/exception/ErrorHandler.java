@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -38,7 +40,7 @@ public class ErrorHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse onConstraintValidationException(
+    public ErrorResponse handleConstraintValidationException(
             ConstraintViolationException e
     ) {
         final Violation item = e.getConstraintViolations().stream()
@@ -53,7 +55,18 @@ public class ErrorHandler {
         log.warn("400: {}", item);
         return new ErrorResponse(HttpStatus.BAD_REQUEST,
                 "Incorrectly made request.",
-                String.format("Field: %s. Error: $s. Value: %s", item.getFieldName(), item.getMessage(), item.getInvalidValue()),
+                String.format("Field: %s. Error: %s. Value: %s", item.getFieldName(), item.getMessage(), item.getInvalidValue()),
                 LocalDateTime.now());
+    }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleValidationException(final ValidationException e) {
+        log.info("400 {}", e.getMessage());
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        String stackTrace = sw.toString();
+        return new ErrorResponse(HttpStatus.BAD_REQUEST, "Ошибка валидации данных.", e.getMessage(), LocalDateTime.now());
     }
 }
