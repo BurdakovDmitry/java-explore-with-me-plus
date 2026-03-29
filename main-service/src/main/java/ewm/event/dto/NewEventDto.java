@@ -1,39 +1,45 @@
 package ewm.event.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import ewm.common.dto.LocationDto;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Data
-public class NewEventDto {
-    @NotBlank
-    @Size(min = 20, max = 2000)
-    private String annotation;
+public record NewEventDto(
+        @NotBlank
+        @Size(min = 20, max = 2000)
+        String annotation,
 
-    @NotNull
-    private Long category;
+        @NotNull
+        Long category,
 
-    @NotBlank
-    @Size(min = 20, max = 7000)
-    private String description;
+        @NotBlank
+        @Size(min = 20, max = 7000)
+        String description,
 
-    @NotNull
-    @Future
-    private LocalDateTime eventDate;
+        @NotNull
+        @Future
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime eventDate,
 
-    @NotNull
-    private LocationDto location;
+        @NotNull
+        LocationDto location,
 
-    private Boolean paid = false;
-    private Integer participantLimit = 0;
-    private Boolean requestModeration = true;
+        Boolean paid,
+        Integer participantLimit,
+        Boolean requestModeration,
 
-    @NotBlank
-    @Size(min = 3, max = 120)
-    private String title;
+        @NotBlank
+        @Size(min = 3, max = 120)
+        String title
+) {
+        public NewEventDto {
+                if (paid == null) paid = false;
+                if (participantLimit == null) participantLimit = 0;
+                if (requestModeration == null) requestModeration = true;
+        }
 }

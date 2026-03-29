@@ -1,15 +1,14 @@
 package ewm.event.service;
 
-import ewm.event.dto.EventFullDto;
-import ewm.event.dto.EventShortDto;
-import ewm.event.dto.NewEventDto;
+import ewm.event.dto.*;
 import ewm.event.model.Event;
+import ewm.user.dto.UserShortDto;
 import ewm.user.model.User;
-import ewm.event.dto.UpdateEventUserRequest;
 import ewm.event.repository.EventRepository;
 import ewm.exception.NotFoundException;
 import ewm.exception.ValidationException;
 import ewm.user.repository.UserRepository;
+import ewm.common.model.Location;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -34,7 +33,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     public List<EventShortDto> getEvents(Long userId, int from, int size) {
         log.info("Getting events for user id={}, from={}, size={}", userId, from, size);
 
-        // Проверяем существование пользователя
         getUserOrThrow(userId);
 
         Pageable pageable = PageRequest.of(from / size, size);
@@ -50,32 +48,27 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     public EventFullDto addEvent(Long userId, NewEventDto newEventDto) {
         log.info("Adding new event for user id={}: {}", userId, newEventDto);
 
-
         User user = getUserOrThrow(userId);
 
-
-        if (newEventDto.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+        if (newEventDto.eventDate().isBefore(LocalDateTime.now().plusHours(2))) {
             throw new ValidationException("Event date must be at least 2 hours from now");
         }
 
-        // Создаём событие
         Event event = new Event();
-        event.setAnnotation(newEventDto.getAnnotation());
-        event.setDescription(newEventDto.getDescription());
-        event.setEventDate(newEventDto.getEventDate());
-        event.setPaid(newEventDto.getPaid() != null ? newEventDto.getPaid() : false);
-        event.setParticipantLimit(newEventDto.getParticipantLimit() != null ? newEventDto.getParticipantLimit() : 0);
-        event.setRequestModeration(newEventDto.getRequestModeration() != null ? newEventDto.getRequestModeration() : true);
-        event.setTitle(newEventDto.getTitle());
+        event.setAnnotation(newEventDto.annotation());
+        event.setDescription(newEventDto.description());
+        event.setEventDate(newEventDto.eventDate());
+        event.setPaid(newEventDto.paid());
+        event.setParticipantLimit(newEventDto.participantLimit());
+        event.setRequestModeration(newEventDto.requestModeration());
+        event.setTitle(newEventDto.title());
         event.setInitiator(user);
         event.setState("PENDING");
         event.setCreatedOn(LocalDateTime.now());
 
-        // Временно устанавливаю категорию по ID (потом заменим на Category из БД)
-        // TODO: после добавления CategoryRepository
-        // Category category = categoryRepository.findById(newEventDto.getCategory())
-        //        .orElseThrow(() -> new NotFoundException("Category not found"));
-        // event.setCategory(category);
+        if (newEventDto.location() != null) {
+            event.setLocation(new Location(newEventDto.location().lat(), newEventDto.location().lon()));
+        }
 
         Event savedEvent = eventRepository.save(event);
         return toEventFullDto(savedEvent);
@@ -86,7 +79,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         log.info("Getting event id={} for user id={}", eventId, userId);
 
         getUserOrThrow(userId);
-
         Event event = getEventOrThrow(eventId);
 
         if (!event.getInitiator().getId().equals(userId)) {
@@ -102,10 +94,8 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         log.info("Updating event id={} for user id={}: {}", eventId, userId, updateRequest);
 
         getUserOrThrow(userId);
-
         Event event = getEventOrThrow(eventId);
 
-        // Проверяем, что событие принадлежит пользователю
         if (!event.getInitiator().getId().equals(userId)) {
             throw new ValidationException("Event does not belong to user");
         }
@@ -114,36 +104,27 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new ValidationException("Only pending or canceled events can be changed");
         }
 
-        if (updateRequest.getAnnotation() != null) {
-            event.setAnnotation(updateRequest.getAnnotation());
-        }
-        if (updateRequest.getDescription() != null) {
-            event.setDescription(updateRequest.getDescription());
-        }
-        if (updateRequest.getEventDate() != null) {
-            if (updateRequest.getEventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+        if (updateRequest.annotation() != null) event.setAnnotation(updateRequest.annotation());
+        if (updateRequest.description() != null) event.setDescription(updateRequest.description());
+        if (updateRequest.eventDate() != null) {
+            if (updateRequest.eventDate().isBefore(LocalDateTime.now().plusHours(2))) {
                 throw new ValidationException("Event date must be at least 2 hours from now");
             }
-            event.setEventDate(updateRequest.getEventDate());
+            event.setEventDate(updateRequest.eventDate());
         }
-        if (updateRequest.getPaid() != null) {
-            event.setPaid(updateRequest.getPaid());
-        }
-        if (updateRequest.getParticipantLimit() != null) {
-            event.setParticipantLimit(updateRequest.getParticipantLimit());
-        }
-        if (updateRequest.getRequestModeration() != null) {
-            event.setRequestModeration(updateRequest.getRequestModeration());
-        }
-        if (updateRequest.getTitle() != null) {
-            event.setTitle(updateRequest.getTitle());
+        if (updateRequest.paid() != null) event.setPaid(updateRequest.paid());
+        if (updateRequest.participantLimit() != null) event.setParticipantLimit(updateRequest.participantLimit());
+        if (updateRequest.requestModeration() != null) event.setRequestModeration(updateRequest.requestModeration());
+        if (updateRequest.title() != null) event.setTitle(updateRequest.title());
+
+        if (updateRequest.location() != null) {
+            event.setLocation(new Location(updateRequest.location().lat(), updateRequest.location().lon()));
         }
 
-        if (updateRequest.getStateAction() != null) {
-            if (updateRequest.getStateAction().equals("SEND_TO_REVIEW")) {
-                event.setState("PENDING");
-            } else if (updateRequest.getStateAction().equals("CANCEL_REVIEW")) {
-                event.setState("CANCELED");
+        if (updateRequest.stateAction() != null) {
+            switch (updateRequest.stateAction()) {
+                case "SEND_TO_REVIEW" -> event.setState("PENDING");
+                case "CANCEL_REVIEW" -> event.setState("CANCELED");
             }
         }
 
@@ -162,29 +143,37 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     }
 
     private EventShortDto toEventShortDto(Event event) {
-        EventShortDto dto = new EventShortDto();
-        dto.setId(event.getId());
-        dto.setAnnotation(event.getAnnotation());
-        dto.setEventDate(event.getEventDate().toString());
-        dto.setPaid(event.getPaid());
-        dto.setTitle(event.getTitle());
-        // TODO: добавить category, initiator, confirmedRequests, views
-        return dto;
+        return new EventShortDto(
+                event.getId(),
+                event.getAnnotation(),
+                event.getCategory(),
+                event.getEventDate().toString(),
+                new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
+                event.getPaid(),
+                event.getTitle(),
+                0L, // views пока нет
+                event.getLocation()
+        );
     }
 
     private EventFullDto toEventFullDto(Event event) {
-        EventFullDto dto = new EventFullDto();
-        dto.setId(event.getId());
-        dto.setAnnotation(event.getAnnotation());
-        dto.setDescription(event.getDescription());
-        dto.setEventDate(event.getEventDate().toString());
-        dto.setPaid(event.getPaid());
-        dto.setParticipantLimit(event.getParticipantLimit());
-        dto.setRequestModeration(event.getRequestModeration());
-        dto.setState(event.getState());
-        dto.setTitle(event.getTitle());
-        dto.setCreatedOn(event.getCreatedOn().toString());
-        // TODO: добавить category, initiator, location, confirmedRequests, views, publishedOn
-        return dto;
+        return new EventFullDto(
+                event.getId(),
+                event.getAnnotation(),
+                event.getCategory(),
+                0L, // confirmedRequests пока нет
+                event.getCreatedOn().toString(),
+                event.getDescription(),
+                event.getEventDate().toString(),
+                new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
+                event.getLocation(),
+                event.getPaid(),
+                event.getParticipantLimit(),
+                event.getPublishedOn() != null ? event.getPublishedOn().toString() : null,
+                event.getRequestModeration(),
+                event.getState(),
+                event.getTitle(),
+                0L // views пока нет
+        );
     }
 }

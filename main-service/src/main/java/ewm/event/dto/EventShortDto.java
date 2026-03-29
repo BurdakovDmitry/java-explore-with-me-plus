@@ -1,18 +1,17 @@
 package ewm.event.dto;
 
-import ewm.category.dto.CategoryDto;
+import ewm.category.dto.model.Category;
+import ewm.common.model.Location;
 import ewm.user.dto.UserShortDto;
-import lombok.Data;
 
-@Data
-public class EventShortDto {
-    private Long id;
-    private String annotation;
-    private CategoryDto category;
-    private Long confirmedRequests;
-    private String eventDate;
-    private UserShortDto initiator;
-    private Boolean paid;
-    private String title;
-    private Long views;
-}
+public record EventShortDto(
+        Long id,
+        String annotation,
+        Category category,
+        String eventDate,
+        UserShortDto initiator,
+        Boolean paid,
+        String title,
+        Long views,
+        Location location
+) {}
