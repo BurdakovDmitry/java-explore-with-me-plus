@@ -43,8 +43,11 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     public void deleteCategoryById(Long categoryId) {
         log.info("Удаление категории с id: {}", categoryId);
 
+        categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new NotFoundException("Категория с id= " + categoryId + " не найдена"));
+
         if (!categoryRepository.existsById(categoryId)) {
-            throw new NotFoundException("Категория с id= " + categoryId + " не найдена");
+            throw new ConflictException("Категория с id= " + categoryId + " не найдена");
         }
 
         categoryRepository.deleteById(categoryId);
@@ -62,7 +65,7 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
                    return new NotFoundException("Категория с id= " + categoryId + " не найдена");
                 });
 
-        category.setName(category.getName());
+        category.setName(categoryDto.getName());
 
         try {
             category = categoryRepository.save(category);
