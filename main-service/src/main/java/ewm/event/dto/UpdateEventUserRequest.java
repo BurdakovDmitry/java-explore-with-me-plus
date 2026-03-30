@@ -1,7 +1,7 @@
 package ewm.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import ewm.common.dto.LocationDto;
+import ewm.common.model.Location;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.Size;
 
@@ -17,16 +17,16 @@ public record UpdateEventUserRequest(
         String description,
 
         @Future
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         LocalDateTime eventDate,
 
-        LocationDto location,
-
+        Location location,
         Boolean paid,
         Integer participantLimit,
         Boolean requestModeration,
-        String stateAction,
 
         @Size(min = 3, max = 120)
-        String title
+        String title,
+
+        StateAction stateAction
 ) {}

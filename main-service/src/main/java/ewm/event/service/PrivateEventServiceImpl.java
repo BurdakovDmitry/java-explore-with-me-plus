@@ -2,6 +2,7 @@ package ewm.event.service;
 
 import ewm.event.dto.*;
 import ewm.event.model.Event;
+import ewm.event.model.EventState;
 import ewm.user.dto.UserShortDto;
 import ewm.user.model.User;
 import ewm.event.repository.EventRepository;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -36,42 +36,43 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         getUserOrThrow(userId);
 
         Pageable pageable = PageRequest.of(from / size, size);
-        List<Event> events = eventRepository.findByInitiatorId(userId, pageable);
-
-        return events.stream()
+        return eventRepository.findByInitiatorId(userId, pageable)
+                .stream()
                 .map(this::toEventShortDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     @Transactional
-    public EventFullDto addEvent(Long userId, NewEventDto newEventDto) {
-        log.info("Adding new event for user id={}: {}", userId, newEventDto);
+    public EventFullDto addEvent(Long userId, NewEventDto dto) {
+        log.info("Adding event for user id={}", userId);
 
         User user = getUserOrThrow(userId);
 
-        if (newEventDto.eventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-            throw new ValidationException("Event date must be at least 2 hours from now");
+        if (dto.eventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+            throw new ValidationException("Event date must be at least 2 hours from now"); // тут у тебя должен быть 409
         }
 
         Event event = new Event();
-        event.setAnnotation(newEventDto.annotation());
-        event.setDescription(newEventDto.description());
-        event.setEventDate(newEventDto.eventDate());
-        event.setPaid(newEventDto.paid());
-        event.setParticipantLimit(newEventDto.participantLimit());
-        event.setRequestModeration(newEventDto.requestModeration());
-        event.setTitle(newEventDto.title());
-        event.setInitiator(user);
-        event.setState("PENDING");
+        event.setAnnotation(dto.annotation());
+        event.setDescription(dto.description());
+        event.setEventDate(dto.eventDate());
         event.setCreatedOn(LocalDateTime.now());
+        event.setPaid(dto.paid() != null ? dto.paid() : false);
+        event.setParticipantLimit(dto.participantLimit() != null ? dto.participantLimit() : 0);
+        event.setRequestModeration(dto.requestModeration() != null ? dto.requestModeration() : true);
+        event.setTitle(dto.title());
+        event.setInitiator(user);
+        event.setState(EventState.PENDING);
 
-        if (newEventDto.location() != null) {
-            event.setLocation(new Location(newEventDto.location().lat(), newEventDto.location().lon()));
+        if (dto.location() != null) {
+            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
         }
 
-        Event savedEvent = eventRepository.save(event);
-        return toEventFullDto(savedEvent);
+        Event saved = eventRepository.save(event);
+        log.info("Event created successfully: id={}", saved.getId());
+
+        return toEventFullDto(saved);
     }
 
     @Override
@@ -90,8 +91,8 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
     @Override
     @Transactional
-    public EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest updateRequest) {
-        log.info("Updating event id={} for user id={}: {}", eventId, userId, updateRequest);
+    public EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest dto) {
+        log.info("Updating event id={} for user id={}", eventId, userId);
 
         getUserOrThrow(userId);
         Event event = getEventOrThrow(eventId);
@@ -100,80 +101,82 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new ValidationException("Event does not belong to user");
         }
 
-        if (!event.getState().equals("PENDING") && !event.getState().equals("CANCELED")) {
-            throw new ValidationException("Only pending or canceled events can be changed");
+        if (event.getState() != EventState.PENDING && event.getState() != EventState.CANCELED) {
+            throw new ValidationException("Only pending or canceled events can be changed"); // 409
         }
 
-        if (updateRequest.annotation() != null) event.setAnnotation(updateRequest.annotation());
-        if (updateRequest.description() != null) event.setDescription(updateRequest.description());
-        if (updateRequest.eventDate() != null) {
-            if (updateRequest.eventDate().isBefore(LocalDateTime.now().plusHours(2))) {
-                throw new ValidationException("Event date must be at least 2 hours from now");
+        if (dto.eventDate() != null &&
+                dto.eventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+            throw new ValidationException("Event date must be at least 2 hours from now"); // 409
+        }
+
+        if (dto.annotation() != null) event.setAnnotation(dto.annotation());
+        if (dto.description() != null) event.setDescription(dto.description());
+        if (dto.eventDate() != null) event.setEventDate(dto.eventDate());
+        if (dto.paid() != null) event.setPaid(dto.paid());
+        if (dto.participantLimit() != null) event.setParticipantLimit(dto.participantLimit());
+        if (dto.requestModeration() != null) event.setRequestModeration(dto.requestModeration());
+        if (dto.title() != null) event.setTitle(dto.title());
+
+        if (dto.location() != null) {
+            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
+        }
+
+        if (dto.stateAction() != null) {
+            switch (dto.stateAction()) {
+                case SEND_TO_REVIEW -> event.setState(EventState.PENDING);
+                case CANCEL_REVIEW -> event.setState(EventState.CANCELED);
             }
-            event.setEventDate(updateRequest.eventDate());
-        }
-        if (updateRequest.paid() != null) event.setPaid(updateRequest.paid());
-        if (updateRequest.participantLimit() != null) event.setParticipantLimit(updateRequest.participantLimit());
-        if (updateRequest.requestModeration() != null) event.setRequestModeration(updateRequest.requestModeration());
-        if (updateRequest.title() != null) event.setTitle(updateRequest.title());
-
-        if (updateRequest.location() != null) {
-            event.setLocation(new Location(updateRequest.location().lat(), updateRequest.location().lon()));
         }
 
-        if (updateRequest.stateAction() != null) {
-            switch (updateRequest.stateAction()) {
-                case "SEND_TO_REVIEW" -> event.setState("PENDING");
-                case "CANCEL_REVIEW" -> event.setState("CANCELED");
-            }
-        }
+        Event updated = eventRepository.save(event);
+        log.info("Event updated successfully: id={}", updated.getId());
 
-        Event updatedEvent = eventRepository.save(event);
-        return toEventFullDto(updatedEvent);
+        return toEventFullDto(updated);
     }
 
     private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
     }
 
     private Event getEventOrThrow(Long eventId) {
         return eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Event not found with id: " + eventId));
+                .orElseThrow(() -> new NotFoundException("Event not found: " + eventId));
     }
 
-    private EventShortDto toEventShortDto(Event event) {
+    private EventShortDto toEventShortDto(Event e) {
         return new EventShortDto(
-                event.getId(),
-                event.getAnnotation(),
-                event.getCategory(),
-                event.getEventDate().toString(),
-                new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
-                event.getPaid(),
-                event.getTitle(),
-                0L, // views пока нет
-                event.getLocation()
+                e.getId(),
+                e.getAnnotation(),
+                e.getCategory(),
+                e.getEventDate(),
+                new UserShortDto(e.getInitiator().getId(), e.getInitiator().getName()),
+                e.getPaid(),
+                e.getTitle(),
+                0L,
+                e.getLocation()
         );
     }
 
-    private EventFullDto toEventFullDto(Event event) {
+    private EventFullDto toEventFullDto(Event e) {
         return new EventFullDto(
-                event.getId(),
-                event.getAnnotation(),
-                event.getCategory(),
-                0L, // confirmedRequests пока нет
-                event.getCreatedOn().toString(),
-                event.getDescription(),
-                event.getEventDate().toString(),
-                new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
-                event.getLocation(),
-                event.getPaid(),
-                event.getParticipantLimit(),
-                event.getPublishedOn() != null ? event.getPublishedOn().toString() : null,
-                event.getRequestModeration(),
-                event.getState(),
-                event.getTitle(),
-                0L // views пока нет
+                e.getId(),
+                e.getAnnotation(),
+                e.getCategory(),
+                0L,
+                e.getCreatedOn(),
+                e.getDescription(),
+                e.getEventDate(),
+                new UserShortDto(e.getInitiator().getId(), e.getInitiator().getName()),
+                e.getLocation(),
+                e.getPaid(),
+                e.getParticipantLimit(),
+                e.getPublishedOn(),
+                e.getRequestModeration(),
+                e.getState(),
+                e.getTitle(),
+                0L
         );
     }
 }

@@ -1,24 +1,37 @@
 package ewm.event.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import ewm.category.dto.model.Category;
 import ewm.common.model.Location;
 import ewm.user.dto.UserShortDto;
+import ewm.event.model.EventState;
+
+import java.time.LocalDateTime;
 
 public record EventFullDto(
         Long id,
         String annotation,
         Category category,
         Long confirmedRequests,
-        String createdOn,
+
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime createdOn,
+
         String description,
-        String eventDate,
+
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime eventDate,
+
         UserShortDto initiator,
         Location location,
         Boolean paid,
         Integer participantLimit,
-        String publishedOn,
+
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime publishedOn,
+
         Boolean requestModeration,
-        String state,
+        EventState state,
         String title,
         Long views
 ) {}

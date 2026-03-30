@@ -9,6 +9,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
 @Entity
 @Table(name = "events")
 @Data
@@ -32,7 +33,10 @@ public class Event {
     private Boolean paid;
     private Integer participantLimit;
     private Boolean requestModeration;
-    private String state;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "state")
+    private EventState state;
     private String title;
 
     @ManyToOne
