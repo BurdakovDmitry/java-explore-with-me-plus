@@ -1,91 +1,72 @@
-package ewm.common.exception;
+package ewm.exception;
 
-import ewm.common.dto.ApiError;
-import ewm.exception.ConflictException;
-import ewm.exception.NotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.convert.ConversionFailedException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
-
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-    // 400 - Ошибка валидации
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiError handleValidation(MethodArgumentNotValidException e) {
-        log.error("Validation error: {}", e.getMessage());
-
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(error -> String.format("Field: %s. Error: %s. Value: %s",
-                        error.getField(),
-                        error.getDefaultMessage(),
-                        error.getRejectedValue() != null ? error.getRejectedValue() : "null"))
-                .findFirst()
-                .orElse(e.getMessage());
-
-        return ApiError.builder()
-                .message(message)
-                .reason("Incorrectly made request.")
-                .status("BAD_REQUEST")
-                .timestamp(LocalDateTime.now().format(FORMATTER))
-                .build();
-    }
-
-    // 404 - Категория не найдена
-    @ExceptionHandler(NotFoundException.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ApiError handleNotFound(NotFoundException e) {
-        log.error("Not found error: {}", e.getMessage());
-
-        return ApiError.builder()
-                .message(e.getMessage())
-                .reason("The required object was not found.")
-                .status("NOT_FOUND")
-                .timestamp(LocalDateTime.now().format(FORMATTER))
-                .build();
+    public ErrorResponse handleNotFound(final NotFoundException e) {
+        log.info("404 {}", e.getMessage());
+        return new ErrorResponse(HttpStatus.NOT_FOUND, "The required object was not found.", e.getMessage(), LocalDateTime.now());
     }
 
-    // 409 - Нарушение целостности данных (дубликат категории)
-    @ExceptionHandler(ConflictException.class)
+
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ApiError handleConflict(ConflictException e) {
-        log.error("Conflict error: {}", e.getMessage());
-
-        return ApiError.builder()
-                .message(e.getMessage())
-                .reason("Integrity constraint has been violated.")
-                .status("CONFLICT")
-                .timestamp(LocalDateTime.now().format(FORMATTER))
-                .build();
+    public ErrorResponse handleDataIntegrityViolationException(final DataIntegrityViolationException e) {
+        log.warn("409: {}", e.getMessage());
+        return new ErrorResponse(HttpStatus.CONFLICT, "Integrity constraint has been violated.", e.getMessage(), LocalDateTime.now());
     }
 
-    // 500 - Непредвиденная ошибка
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ApiError handleException(Exception e) {
-        log.error("Internal server error", e);
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConversionFailedException(final ConversionFailedException e) {
+        log.warn("400: {}", e.getMessage());
+        return new ErrorResponse(HttpStatus.BAD_REQUEST, "Incorrectly made request.", e.getMessage(), LocalDateTime.now());
+    }
 
-        List<String> errors = Collections.singletonList(e.getMessage());
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleConstraintValidationException(
+            ConstraintViolationException e
+    ) {
+        final Violation item = e.getConstraintViolations().stream()
+                .map(
+                        violation -> new Violation(
+                                violation.getPropertyPath().toString(),
+                                violation.getMessage(),
+                                violation.getInvalidValue()
+                        )
+                )
+                .toList().getFirst();
+        log.warn("400: {}", item);
+        return new ErrorResponse(HttpStatus.BAD_REQUEST,
+                "Incorrectly made request.",
+                String.format("Field: %s. Error: %s. Value: %s", item.getFieldName(), item.getMessage(), item.getInvalidValue()),
+                LocalDateTime.now());
+    }
 
-        return ApiError.builder()
-                .errors(errors)
-                .message(e.getMessage())
-                .reason("Unexpected error occurred.")
-                .status("INTERNAL_SERVER_ERROR")
-                .timestamp(LocalDateTime.now().format(FORMATTER))
-                .build();
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleValidationException(final ValidationException e) {
+        log.info("400 {}", e.getMessage());
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        e.printStackTrace(pw);
+        String stackTrace = sw.toString();
+        return new ErrorResponse(HttpStatus.BAD_REQUEST, "Ошибка валидации данных.", e.getMessage(), LocalDateTime.now());
     }
 }
