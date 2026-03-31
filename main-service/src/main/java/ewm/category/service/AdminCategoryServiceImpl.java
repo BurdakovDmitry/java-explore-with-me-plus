@@ -25,7 +25,7 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
 
     @Override
     public CategoryDto addCategory(NewCategoryDto newCategoryDto) {
-        log.info("Добавление новой категории: {}", newCategoryDto.getName());
+        log.info("Добавление новой категории: {}", newCategoryDto.name());
         Category category = categoryMapper.toEntity(newCategoryDto);
 
         try {
@@ -57,7 +57,7 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     // имя категории должно быть уникальным
     @Override
     public CategoryDto updateCategory(Long categoryId, CategoryDto categoryDto) {
-        log.info("Обновление категории с id: {}, новое имя: {}", categoryId, categoryDto.getName());
+        log.info("Обновление категории с id: {}, новое имя: {}", categoryId, categoryDto.name());
 
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> {
@@ -65,14 +65,14 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
                    return new NotFoundException("Категория с id= " + categoryId + " не найдена");
                 });
 
-        category.setName(categoryDto.getName());
+        category.setName(categoryDto.name());
 
         try {
             category = categoryRepository.save(category);
             log.info("Категория с id {} обновлена", categoryId);
         } catch (DataIntegrityViolationException  e) {
-            log.warn("Категория с именем: {} Уже существует ", categoryDto.getName());
-            throw new ConflictException("Категория с именем " + categoryDto.getName() + " уже существует");
+            log.warn("Категория с именем: {} Уже существует ", categoryDto.name());
+            throw new ConflictException("Категория с именем " + categoryDto.name() + " уже существует");
         }
 
         return categoryMapper.toDto(category);

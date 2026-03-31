@@ -14,7 +14,4 @@ public interface CategoryMapper {
 
     @Mapping(target = "id", ignore = true)
     Category toEntity(NewCategoryDto newCategoryDto);
-
-    @Mapping(target = "id", ignore = true)
-    void updateCategory(@MappingTarget Category category, CategoryDto categoryDto);
 }
