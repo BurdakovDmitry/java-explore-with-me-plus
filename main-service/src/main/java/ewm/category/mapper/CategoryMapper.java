@@ -5,7 +5,6 @@ import ewm.category.dto.NewCategoryDto;
 import ewm.category.model.Category;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface CategoryMapper {

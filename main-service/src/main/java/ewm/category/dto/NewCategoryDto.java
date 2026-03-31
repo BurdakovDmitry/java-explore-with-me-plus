@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Size;
 
 public record NewCategoryDto(
         @NotBlank(message = "Название категории не может быть пустым")
-        @Size(min = 0, max = 50, message = "Имя категории не должно превышать 50 символом")
+        @Size(min = 1, max = 50, message = "Имя категории не должно превышать 50 символом")
         String name
 ) {
 }
