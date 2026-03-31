@@ -21,7 +21,7 @@ public class PublicCompilationServiceImpl implements ewm.compilation.service.Pub
     private final CompilationRepository compilationRepository;
 
     @Override
-    public List<CompilationDto> getCompilations(Boolean pinned, int from, int size) {
+    public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
         Pageable pageable = PageRequest.of(from / size, size);
         List<Compilation> compilations;
 

@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface PrivateEventService {
 
-    List<EventShortDto> getEvents(Long userId, int from, int size);
+    List<EventShortDto> getEvents(Long userId, Integer from, Integer size);
 
     EventFullDto addEvent(Long userId, NewEventDto newEventDto);
 
