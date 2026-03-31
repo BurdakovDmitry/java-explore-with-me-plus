@@ -69,4 +69,11 @@ public class ErrorHandler {
         String stackTrace = sw.toString();
         return new ErrorResponse(HttpStatus.BAD_REQUEST, "Ошибка валидации данных.", e.getMessage(), LocalDateTime.now());
     }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleConflict(final ConflictException e) {
+        log.warn("409 {}", e.getMessage());
+        return new ErrorResponse(HttpStatus.CONFLICT, "For the requested operation the conditions are not met.", e.getMessage(), LocalDateTime.now());
+    }
 }
