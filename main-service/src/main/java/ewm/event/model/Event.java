@@ -2,9 +2,19 @@ package ewm.event.model;
 
 import ewm.category.model.Category;
 import ewm.compilation.model.Compilation;
-import ewm.event.dto.EventFullDto;
 import ewm.user.model.User;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,7 +58,7 @@ public class Event {
     private User initiator;
 
     @Embedded
-    private EventFullDto.Location location;
+    private Location location;
 
     @ManyToMany(mappedBy = "events")
     private List<Compilation> compilations;

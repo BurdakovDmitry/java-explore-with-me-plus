@@ -1,6 +1,7 @@
 package ewm.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import ewm.event.model.Location;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,7 +27,7 @@ public record NewEventDto(
         LocalDateTime eventDate,
 
         @NotNull
-        EventFullDto.Location location,
+        Location location,
 
         Boolean paid,
 

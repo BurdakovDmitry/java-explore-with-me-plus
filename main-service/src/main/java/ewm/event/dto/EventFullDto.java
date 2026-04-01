@@ -2,12 +2,9 @@ package ewm.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import ewm.category.model.Category;
+import ewm.event.model.Location;
 import ewm.user.dto.UserShortDto;
 import ewm.event.model.EventState;
-import jakarta.persistence.Embeddable;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -37,13 +34,4 @@ public record EventFullDto(
         EventState state,
         String title,
         Long views
-) {
-        @Embeddable
-        @Data
-        @NoArgsConstructor
-        @AllArgsConstructor
-        public static class Location {
-            private Float lat;
-            private Float lon;
-        }
-}
+) {}

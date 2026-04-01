@@ -4,6 +4,7 @@ import ewm.event.dto.*;
 import ewm.event.mapper.EventMapper;
 import ewm.event.model.Event;
 import ewm.event.model.EventState;
+import ewm.event.model.Location;
 import ewm.user.model.User;
 import ewm.event.repository.EventRepository;
 import ewm.exception.ConflictException;
@@ -66,7 +67,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         event.setState(EventState.PENDING);
 
         if (dto.location() != null) {
-            event.setLocation(new EventFullDto.Location(dto.location().getLat(), dto.location().getLon()));
+            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
         }
 
         Event saved = eventRepository.save(event);
@@ -119,7 +120,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         if (dto.title() != null) event.setTitle(dto.title());
 
         if (dto.location() != null) {
-            event.setLocation(new EventFullDto.Location(dto.location().getLat(), dto.location().getLon()));
+            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
         }
 
         if (dto.stateAction() != null) {
