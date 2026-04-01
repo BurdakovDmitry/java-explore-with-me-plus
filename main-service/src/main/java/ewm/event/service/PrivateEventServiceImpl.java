@@ -9,7 +9,6 @@ import ewm.event.repository.EventRepository;
 import ewm.exception.ConflictException;
 import ewm.exception.NotFoundException;
 import ewm.user.repository.UserRepository;
-import ewm.common.model.Location;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -67,7 +66,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         event.setState(EventState.PENDING);
 
         if (dto.location() != null) {
-            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
+            event.setLocation(new EventFullDto.Location(dto.location().getLat(), dto.location().getLon()));
         }
 
         Event saved = eventRepository.save(event);
@@ -120,7 +119,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         if (dto.title() != null) event.setTitle(dto.title());
 
         if (dto.location() != null) {
-            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
+            event.setLocation(new EventFullDto.Location(dto.location().getLat(), dto.location().getLon()));
         }
 
         if (dto.stateAction() != null) {

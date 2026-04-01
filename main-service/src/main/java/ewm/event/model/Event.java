@@ -1,8 +1,8 @@
 package ewm.event.model;
 
-import ewm.category.dto.model.Category;
-import ewm.common.model.Location;
+import ewm.category.model.Category;
 import ewm.compilation.model.Compilation;
+import ewm.event.dto.EventFullDto;
 import ewm.user.model.User;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -48,7 +48,7 @@ public class Event {
     private User initiator;
 
     @Embedded
-    private Location location;
+    private EventFullDto.Location location;
 
     @ManyToMany(mappedBy = "events")
     private List<Compilation> compilations;

@@ -1,8 +1,7 @@
 package ewm.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import ewm.category.dto.model.Category;
-import ewm.common.model.Location;
+import ewm.category.model.Category;
 import ewm.user.dto.UserShortDto;
 
 import java.time.LocalDateTime;
@@ -19,5 +18,5 @@ public record EventShortDto(
         Boolean paid,
         String title,
         Long views,
-        Location location
+        EventFullDto.Location location
 ) {}
