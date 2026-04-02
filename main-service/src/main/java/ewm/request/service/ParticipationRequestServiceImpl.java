@@ -98,6 +98,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
         }
 
         request.setStatus(ParticipationStatus.CANCELED);
+        requestRepository.save(request);
 
         log.info("Заявка на событие отменена");
 
