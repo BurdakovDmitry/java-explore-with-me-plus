@@ -1,6 +1,6 @@
 package ewm.event.model;
 
-import ewm.category.dto.model.Category;
+import ewm.category.model.Category;
 import ewm.common.model.Location;
 import ewm.compilation.model.Compilation;
 import ewm.user.model.User;
