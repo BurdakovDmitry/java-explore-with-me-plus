@@ -10,18 +10,24 @@ import ewm.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional
-public class AdminCategoryServiceImpl implements AdminCategoryService {
+@Transactional(readOnly = true)
+public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
     @Override
+    @Transactional
     public CategoryDto addCategory(NewCategoryDto newCategoryDto) {
         log.info("Добавление новой категории: {}", newCategoryDto.name());
         Category category = categoryMapper.toEntity(newCategoryDto);
@@ -38,6 +44,7 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     }
 
     @Override
+    @Transactional
     public void deleteCategoryById(Long categoryId) {
         log.info("Удаление категории с id: {}", categoryId);
 
@@ -54,6 +61,7 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
 
     // имя категории должно быть уникальным
     @Override
+    @Transactional
     public CategoryDto updateCategory(Long categoryId, CategoryDto categoryDto) {
         log.info("Обновление категории с id: {}, новое имя: {}", categoryId, categoryDto.name());
 
@@ -72,6 +80,28 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
             log.warn("Категория с именем: {} Уже существует ", categoryDto.name());
             throw new ConflictException("Категория с именем " + categoryDto.name() + " уже существует");
         }
+
+        return categoryMapper.toDto(category);
+    }
+
+    @Override
+    public List<CategoryDto> getAllCategory(Integer from, Integer size) {
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("id").ascending());
+
+        List<Category> categories = categoryRepository.findAll(pageable).getContent();
+
+        log.info("Получен список категорий: {}", categories);
+        return categories.stream()
+                .map(categoryMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public CategoryDto getCategoryById(Long catId) {
+        Category category = categoryRepository.findById(catId)
+                .orElseThrow(() -> new NotFoundException("Категория с id= " + catId + " не найдена"));
+
+        log.info("Получена категория с id = {}", catId);
 
         return categoryMapper.toDto(category);
     }

@@ -2,7 +2,7 @@ package ewm.category.controller;
 
 import ewm.category.dto.CategoryDto;
 import ewm.category.dto.NewCategoryDto;
-import ewm.category.service.AdminCategoryService;
+import ewm.category.service.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(path = "/admin/categories")
 @RequiredArgsConstructor
 public class AdminCategoryController {
-    private final AdminCategoryService adminCategoryService;
+    private final CategoryService adminCategoryService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
