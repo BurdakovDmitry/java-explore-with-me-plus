@@ -37,7 +37,9 @@ public class AdminEventServiceImpl implements AdminEventService {
                                            List<Long> categories, LocalDateTime rangeStart,
                                            LocalDateTime rangeEnd, Integer from, Integer size) {
         log.info("Search events with filters: users={}, states={}, categories={}", users, states, categories);
+
         Pageable pageable = PageRequest.of(from / size, size);
+
         return eventRepository.findEventsByFilters(users, states, categories, rangeStart, rangeEnd, pageable)
                 .stream()
                 .map(event -> eventMapper.toFullDto(event, participationRequestRepository))
@@ -119,6 +121,10 @@ public class AdminEventServiceImpl implements AdminEventService {
         log.info("Event c id={} успешно обновлено", updated.getId());
 
         return eventMapper.toFullDto(updated, participationRequestRepository);
+    }
+
+    public List<Event> findByIds(List<Long> eventIds) {
+        return eventRepository.findAllById(eventIds);
     }
 
     private Event existsEvent(Long eventId) {

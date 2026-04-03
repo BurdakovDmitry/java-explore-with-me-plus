@@ -18,25 +18,31 @@ public class Event {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String annotation;
+    @Column(nullable = false)
     private String description;
 
-    @Column(name = "event_date")
+    @Column(name = "event_date", nullable = false)
     private LocalDateTime eventDate;
 
-    @Column(name = "created_on")
+    @Column(name = "created_on", nullable = false)
     private LocalDateTime createdOn;
 
     @Column(name = "published_on")
     private LocalDateTime publishedOn;
 
+    @Column(nullable = false)
     private Boolean paid;
+    @Column(name = "participant_limit", nullable = false)
     private Integer participantLimit;
+    @Column(name = "request_moderation", nullable = false)
     private Boolean requestModeration;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "state")
+    @Column(name = "state", nullable = false)
     private EventState state;
+    @Column(name = "title", nullable = false)
     private String title;
 
     @ManyToOne
@@ -44,7 +50,7 @@ public class Event {
     private Category category;
 
     @ManyToOne
-    @JoinColumn(name = "initiator_id")
+    @JoinColumn(name = "initiator_id", nullable = false)
     private User initiator;
 
     @Embedded

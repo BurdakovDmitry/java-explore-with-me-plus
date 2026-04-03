@@ -14,12 +14,15 @@ public interface EventMapper {
     @Mapping(target = "views", constant = "0L")
     EventShortDto toShortDto(Event event);
 
+    @Mapping(target = "confirmedRequests",
+            expression = "java(requestRepository != null ? " +
+                    "requestRepository.countByEventAndStatus(event, ewm.request.model.ParticipationStatus.CONFIRMED) " +
+                    ": 0L)")
+    @Mapping(target = "views", constant = "0L")
+    EventFullDto toFullDto(Event event,
+                           @Context ParticipationRequestRepository requestRepository);
+
     @Mapping(target = "confirmedRequests", constant = "0L")
     @Mapping(target = "views", constant = "0L")
     EventFullDto toFullDto(Event event);
-
-    @Mapping(target = "confirmedRequests",
-            expression = "java(requestRepository != null ? requestRepository.countByEventAndStatus(event, ParticipationStatus.CONFIRMED) : 0L)")
-    EventFullDto toFullDto(Event event,
-                           @Context ParticipationRequestRepository requestRepository);
 }

@@ -2,6 +2,7 @@ package ewm.event.service;
 
 import ewm.event.dto.EventFullDto;
 import ewm.event.dto.UpdateEventAdminRequest;
+import ewm.event.model.Event;
 import ewm.event.model.EventState;
 
 import java.time.LocalDateTime;
@@ -12,4 +13,6 @@ public interface AdminEventService {
                                     LocalDateTime rangeStart, LocalDateTime rangeEnd, Integer from, Integer size);
 
     EventFullDto updateEvent(Long eventId, UpdateEventAdminRequest dto);
+
+    public List<Event> findByIds(List<Long> eventIds);
 }
