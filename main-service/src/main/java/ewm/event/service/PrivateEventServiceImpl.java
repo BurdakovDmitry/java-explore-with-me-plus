@@ -1,15 +1,17 @@
 package ewm.event.service;
 
-import ewm.event.dto.*;
+import ewm.event.dto.EventFullDto;
+import ewm.event.dto.EventShortDto;
+import ewm.event.dto.NewEventDto;
+import ewm.event.dto.UpdateEventUserRequest;
 import ewm.event.mapper.EventMapper;
 import ewm.event.model.Event;
 import ewm.event.model.EventState;
-import ewm.user.model.User;
 import ewm.event.repository.EventRepository;
 import ewm.exception.ConflictException;
 import ewm.exception.NotFoundException;
+import ewm.user.model.User;
 import ewm.user.repository.UserRepository;
-import ewm.common.model.Location;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -54,21 +56,10 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new ConflictException("Event date must be at least 2 hours from now");
         }
 
-        Event event = new Event();
-        event.setAnnotation(dto.annotation());
-        event.setDescription(dto.description());
-        event.setEventDate(dto.eventDate());
-        event.setCreatedOn(LocalDateTime.now());
-        event.setPaid(dto.paid() != null ? dto.paid() : false);
-        event.setParticipantLimit(dto.participantLimit() != null ? dto.participantLimit() : 0);
-        event.setRequestModeration(dto.requestModeration() != null ? dto.requestModeration() : true);
-        event.setTitle(dto.title());
+        Event event = eventMapper.toEvent(dto);
         event.setInitiator(user);
         event.setState(EventState.PENDING);
-
-        if (dto.location() != null) {
-            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
-        }
+        event.setCreatedOn(LocalDateTime.now());
 
         Event saved = eventRepository.save(event);
         log.info("Event created successfully: id={}", saved.getId());
@@ -92,7 +83,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
     @Override
     @Transactional
-    public EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest dto) {
+    public EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest request) {
         log.info("Updating event id={} for user id={}", eventId, userId);
 
         getUserOrThrow(userId);
@@ -106,25 +97,15 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new ConflictException("Only pending or canceled events can be changed");
         }
 
-        if (dto.eventDate() != null &&
-                dto.eventDate().isBefore(LocalDateTime.now().plusHours(2))) {
+        if (request.eventDate() != null &&
+                request.eventDate().isBefore(LocalDateTime.now().plusHours(2))) {
             throw new ConflictException("Event date must be at least 2 hours from now");
         }
 
-        if (dto.annotation() != null) event.setAnnotation(dto.annotation());
-        if (dto.description() != null) event.setDescription(dto.description());
-        if (dto.eventDate() != null) event.setEventDate(dto.eventDate());
-        if (dto.paid() != null) event.setPaid(dto.paid());
-        if (dto.participantLimit() != null) event.setParticipantLimit(dto.participantLimit());
-        if (dto.requestModeration() != null) event.setRequestModeration(dto.requestModeration());
-        if (dto.title() != null) event.setTitle(dto.title());
+        eventMapper.updateEventMap(request, event);
 
-        if (dto.location() != null) {
-            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
-        }
-
-        if (dto.stateAction() != null) {
-            switch (dto.stateAction()) {
+        if (request.stateAction() != null) {
+            switch (request.stateAction()) {
                 case SEND_TO_REVIEW -> event.setState(EventState.PENDING);
                 case CANCEL_REVIEW -> event.setState(EventState.CANCELED);
             }
