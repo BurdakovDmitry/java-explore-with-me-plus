@@ -48,25 +48,25 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
         User requester = findUserById(userId);
 
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Событие с id = " + eventId + " не найдено"));
+                .orElseThrow(() -> new NotFoundException("Event with id=" + eventId + " was not found"));
 
         ParticipationRequest request = new ParticipationRequest();
         Long confirmedRequests = requestRepository.countByEventAndStatus(event, ParticipationStatus.CONFIRMED);
 
         if (requestRepository.existsByRequesterAndEvent(requester, event)) {
-            throw new ConflictException("Данный запрос уже существует");
+            throw new ConflictException("Participation request already exists");
         }
 
         if (event.getInitiator().getId().equals(userId)) {
-            throw new ConflictException("Инициатор события не может добавить запрос на участие в своём событии");
+            throw new ConflictException("The initiator of the event cannot add a request to participate in their own event");
         }
 
         if (!event.getState().equals(EventState.PUBLISHED)) {
-            throw new ConflictException("Событие еще не опубликовано");
+            throw new ConflictException("The event has not been published yet");
         }
 
         if (event.getParticipantLimit() != 0 && event.getParticipantLimit() <= confirmedRequests) {
-            throw new ConflictException("Достигнут лимит участников на данное событие");
+            throw new ConflictException("The participant limit for this event has been reached");
         }
 
         if (event.getRequestModeration() == false) {
@@ -91,10 +91,10 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
         findUserById(userId);
 
         ParticipationRequest request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new NotFoundException("Заявка с id = " + requestId + " не найдена"));
+                .orElseThrow(() -> new NotFoundException("Request с id=" + requestId + " was not found"));
 
         if (!request.getRequester().getId().equals(userId)) {
-            throw new ValidationException("Можно отменить только свою заявку");
+            throw new ValidationException("You can only cancel your own request");
         }
 
         request.setStatus(ParticipationStatus.CANCELED);
@@ -107,6 +107,6 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
     private User findUserById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id = " + userId + " не найден"));
+                .orElseThrow(() -> new NotFoundException("User with id=" + userId + " was not found"));
     }
 }

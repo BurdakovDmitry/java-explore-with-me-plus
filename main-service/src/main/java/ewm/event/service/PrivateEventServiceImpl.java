@@ -2,6 +2,7 @@ package ewm.event.service;
 
 import client.StatClient;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.jpa.JPAExpressions;
 import ewm.HitDto;
 import ewm.ParamDto;
 import ewm.StatsDto;
@@ -14,6 +15,7 @@ import ewm.event.model.Location;
 import ewm.event.model.QEvent;
 import ewm.exception.ValidationException;
 import ewm.request.model.ParticipationStatus;
+import ewm.request.model.QParticipationRequest;
 import ewm.request.repository.ParticipationRequestRepository;
 import ewm.user.model.User;
 import ewm.event.repository.EventRepository;
@@ -25,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -153,20 +156,13 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
     @Override
     public List<EventShortDto> getPublicEvents(PublicEventParamDto eventParamDto, HttpServletRequest request) {
-        saveHit(request);
-
         if (eventParamDto.rangeStart() != null && eventParamDto.rangeEnd() != null &&
                 eventParamDto.rangeStart().isAfter(eventParamDto.rangeEnd())) {
-            throw new ValidationException("Дата и время начала " + eventParamDto.rangeStart() +
-                    " не должны быть позже даты и времени конца " + eventParamDto.rangeEnd());
-        }
-
-        if (eventParamDto.rangeEnd() != null && LocalDateTime.now().isAfter(eventParamDto.rangeEnd())) {
-            throw new ValidationException("Дата и время начала " + LocalDateTime.now() +
-                    " не должны быть позже даты и времени конца " + eventParamDto.rangeEnd());
+            throw new ValidationException("End date cannot be before start date");
         }
 
         QEvent event = QEvent.event;
+        QParticipationRequest parRequest = QParticipationRequest.participationRequest;
         BooleanBuilder paramFilter = new BooleanBuilder();
 
         if (eventParamDto.text() != null && !eventParamDto.text().isBlank()) {
@@ -191,17 +187,32 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
         paramFilter.and(event.state.eq(EventState.PUBLISHED));
 
-        Comparator<EventShortDto> sort = (eventParamDto.sort() != null && eventParamDto.sort().equalsIgnoreCase("VIEWS"))
-                ? Comparator.comparing(EventShortDto::getViews).reversed()
-                : Comparator.comparing(EventShortDto::getEventDate).reversed();
+        if (eventParamDto.onlyAvailable()) {
+            paramFilter.and(event.participantLimit.eq(0)
+                    .or(event.participantLimit.gt(JPAExpressions
+                            .select(parRequest.count())
+                            .from(parRequest)
+                            .where(parRequest.event.id.eq(event.id)
+                                    .and(parRequest.status.eq(ParticipationStatus.CONFIRMED)))
+                    )));
+        }
 
-        Pageable pageable = PageRequest.of(eventParamDto.from() / eventParamDto.size(), eventParamDto.size());
+        Sort sortEventDate = Sort.unsorted();
+        if (eventParamDto.sort() != null && eventParamDto.sort().equalsIgnoreCase("EVENT_DATE")) {
+            sortEventDate = Sort.by("eventDate").ascending();
+        }
+
+        Pageable pageable = PageRequest.of(eventParamDto.from() / eventParamDto.size(),
+                eventParamDto.size(), sortEventDate);
 
         List<Event> events = eventRepository.findAll(paramFilter, pageable).getContent();
+
+        if (events.isEmpty()) {
+            return List.of();
+        }
+
         List<Long> eventIds = events.stream().map(Event::getId).toList();
 
-        Map<Long, Integer> limitsMap = events.stream()
-                .collect(Collectors.toMap(Event::getId, Event::getParticipantLimit));
         Map<Long,Long> confirmedRequestsMap = requestRepository.findAllConfirmedRequests(eventIds).stream()
                 .collect(Collectors.toMap(ConfirmedRequestCount::eventId, ConfirmedRequestCount::count));
         Map<Long, Long> viewsMap = getViewsMap(events);
@@ -209,16 +220,16 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         List<EventShortDto> shortsDto = events.stream()
                 .map(eventMapper::toShortDto)
                 .peek(shortDto -> {
-                        shortDto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(shortDto.getId(), 0L));
-                        shortDto.setViews(viewsMap.getOrDefault(shortDto.getId(), 0L));
+                    shortDto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(shortDto.getId(), 0L));
+                    shortDto.setViews(viewsMap.getOrDefault(shortDto.getId(), 0L));
                 })
-                .filter(shortDto -> {
-                    if (!eventParamDto.onlyAvailable()) return true;
-                    Integer limit = limitsMap.get(shortDto.getId());
-                    return limit == 0 || shortDto.getConfirmedRequests() < limit;
-                })
-                .sorted(sort)
                 .toList();
+
+        if (eventParamDto.sort() != null && eventParamDto.sort().equalsIgnoreCase("VIEWS")) {
+            shortsDto.sort(Comparator.comparing(EventShortDto::getViews).reversed());
+        }
+
+        saveHit(request);
 
         log.info("Получен список запросов по указанным фильтрам");
 
@@ -230,10 +241,8 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         Event event = getEventOrThrow(id);
 
         if (event.getState() != EventState.PUBLISHED) {
-            throw new NotFoundException("Можно посмотреть только опубликованное событие");
+            throw new NotFoundException("Event must be published");
         }
-
-        saveHit(request);
 
         ParamDto paramDto = new ParamDto(event.getPublishedOn(),
                 LocalDateTime.now(),
@@ -245,6 +254,8 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         fullDto.setConfirmedRequests(requestRepository.countByEventAndStatus(event, ParticipationStatus.CONFIRMED));
         fullDto.setViews(getViews(paramDto));
 
+        saveHit(request);
+
         log.info("Получено событие с id = {}", id);
 
         return fullDto;
@@ -252,17 +263,17 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
     private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found: " + userId));
+                .orElseThrow(() -> new NotFoundException("User with id=" + userId + " was not found"));
     }
 
     private Event getEventOrThrow(Long eventId) {
         return eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Event not found: " + eventId));
+                .orElseThrow(() -> new NotFoundException("Event with id=" + eventId + " was not found"));
     }
 
     private void saveHit(HttpServletRequest request) {
         HitDto hitDto = new HitDto(
-                "ewm-stats-server",
+                "ewm-main-service",
                 request.getRequestURI(),
                 request.getRemoteAddr(),
                 LocalDateTime.now());
@@ -277,11 +288,8 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     }
 
     private Map<Long, Long> getViewsMap(List<Event> events) {
-        if (events.isEmpty()) {
-            return Map.of();
-        }
-
-        List<String> uris = events.stream().map(event -> "/events/" + event.getId()).toList();
+        String url = "/events/";
+        List<String> uris = events.stream().map(event -> url + event.getId()).toList();
 
         LocalDateTime start = events.stream()
                 .map(Event::getPublishedOn)
@@ -292,6 +300,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
         return stats.stream().collect(Collectors.toMap(statsDto ->
                         Long.parseLong(statsDto.uri().substring(statsDto.uri().lastIndexOf("/") + 1)),
-                        StatsDto::hits));
+                StatsDto::hits));
     }
 }
