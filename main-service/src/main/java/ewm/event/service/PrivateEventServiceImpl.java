@@ -1,15 +1,26 @@
 package ewm.event.service;
 
+import client.StatClient;
+import com.querydsl.core.BooleanBuilder;
+import ewm.HitDto;
+import ewm.ParamDto;
+import ewm.StatsDto;
 import ewm.event.dto.*;
 import ewm.event.mapper.EventMapper;
+import ewm.request.model.ConfirmedRequestCount;
 import ewm.event.model.Event;
 import ewm.event.model.EventState;
 import ewm.event.model.Location;
+import ewm.event.model.QEvent;
+import ewm.exception.ValidationException;
+import ewm.request.model.ParticipationStatus;
+import ewm.request.repository.ParticipationRequestRepository;
 import ewm.user.model.User;
 import ewm.event.repository.EventRepository;
 import ewm.exception.ConflictException;
 import ewm.exception.NotFoundException;
 import ewm.user.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -18,17 +29,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PrivateEventServiceImpl implements PrivateEventService {
-
+    private final ParticipationRequestRepository requestRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final EventMapper eventMapper;
+    private final StatClient statClient = new StatClient("http://ewm-stats-server:9090");
 
     @Override
     public List<EventShortDto> getEvents(Long userId, Integer from, Integer size) {
@@ -136,6 +151,105 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         return eventMapper.toFullDto(updated);
     }
 
+    @Override
+    public List<EventShortDto> getPublicEvents(PublicEventParamDto eventParamDto, HttpServletRequest request) {
+        saveHit(request);
+
+        if (eventParamDto.rangeStart() != null && eventParamDto.rangeEnd() != null &&
+                eventParamDto.rangeStart().isAfter(eventParamDto.rangeEnd())) {
+            throw new ValidationException("Дата и время начала " + eventParamDto.rangeStart() +
+                    " не должны быть позже даты и времени конца " + eventParamDto.rangeEnd());
+        }
+
+        if (eventParamDto.rangeEnd() != null && LocalDateTime.now().isAfter(eventParamDto.rangeEnd())) {
+            throw new ValidationException("Дата и время начала " + LocalDateTime.now() +
+                    " не должны быть позже даты и времени конца " + eventParamDto.rangeEnd());
+        }
+
+        QEvent event = QEvent.event;
+        BooleanBuilder paramFilter = new BooleanBuilder();
+
+        if (eventParamDto.text() != null && !eventParamDto.text().isBlank()) {
+            paramFilter.and(event.annotation.containsIgnoreCase(eventParamDto.text())
+                    .or(event.description.containsIgnoreCase(eventParamDto.text())));
+        }
+
+        if (eventParamDto.category() != null && !eventParamDto.category().isEmpty()) {
+            paramFilter.and(event.category.id.in(eventParamDto.category()));
+        }
+
+        if (eventParamDto.paid() != null) {
+            paramFilter.and(event.paid.eq(eventParamDto.paid()));
+        }
+
+        LocalDateTime start = eventParamDto.rangeStart() != null ? eventParamDto.rangeStart() : LocalDateTime.now();
+        paramFilter.and(event.eventDate.goe(start));
+
+        if (eventParamDto.rangeEnd() != null) {
+            paramFilter.and(event.eventDate.loe(eventParamDto.rangeEnd()));
+        }
+
+        paramFilter.and(event.state.eq(EventState.PUBLISHED));
+
+        Comparator<EventShortDto> sort = (eventParamDto.sort() != null && eventParamDto.sort().equalsIgnoreCase("VIEWS"))
+                ? Comparator.comparing(EventShortDto::getViews).reversed()
+                : Comparator.comparing(EventShortDto::getEventDate).reversed();
+
+        Pageable pageable = PageRequest.of(eventParamDto.from() / eventParamDto.size(), eventParamDto.size());
+
+        List<Event> events = eventRepository.findAll(paramFilter, pageable).getContent();
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
+
+        Map<Long, Integer> limitsMap = events.stream()
+                .collect(Collectors.toMap(Event::getId, Event::getParticipantLimit));
+        Map<Long,Long> confirmedRequestsMap = requestRepository.findAllConfirmedRequests(eventIds).stream()
+                .collect(Collectors.toMap(ConfirmedRequestCount::eventId, ConfirmedRequestCount::count));
+        Map<Long, Long> viewsMap = getViewsMap(events);
+
+        List<EventShortDto> shortsDto = events.stream()
+                .map(eventMapper::toShortDto)
+                .peek(shortDto -> {
+                        shortDto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(shortDto.getId(), 0L));
+                        shortDto.setViews(viewsMap.getOrDefault(shortDto.getId(), 0L));
+                })
+                .filter(shortDto -> {
+                    if (!eventParamDto.onlyAvailable()) return true;
+                    Integer limit = limitsMap.get(shortDto.getId());
+                    return limit == 0 || shortDto.getConfirmedRequests() < limit;
+                })
+                .sorted(sort)
+                .toList();
+
+        log.info("Получен список запросов по указанным фильтрам");
+
+        return shortsDto;
+    }
+
+    @Override
+    public EventFullDto getPublicEventById(Long id, HttpServletRequest request) {
+        Event event = getEventOrThrow(id);
+
+        if (event.getState() != EventState.PUBLISHED) {
+            throw new NotFoundException("Можно посмотреть только опубликованное событие");
+        }
+
+        saveHit(request);
+
+        ParamDto paramDto = new ParamDto(event.getPublishedOn(),
+                LocalDateTime.now(),
+                List.of(request.getRequestURI()),
+                true);
+
+        EventFullDto fullDto = eventMapper.toFullDto(event);
+
+        fullDto.setConfirmedRequests(requestRepository.countByEventAndStatus(event, ParticipationStatus.CONFIRMED));
+        fullDto.setViews(getViews(paramDto));
+
+        log.info("Получено событие с id = {}", id);
+
+        return fullDto;
+    }
+
     private User getUserOrThrow(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found: " + userId));
@@ -144,5 +258,40 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     private Event getEventOrThrow(Long eventId) {
         return eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found: " + eventId));
+    }
+
+    private void saveHit(HttpServletRequest request) {
+        HitDto hitDto = new HitDto(
+                "ewm-stats-server",
+                request.getRequestURI(),
+                request.getRemoteAddr(),
+                LocalDateTime.now());
+
+        statClient.hit(hitDto);
+    }
+
+    private Long getViews(ParamDto paramDto) {
+        List<StatsDto> views = statClient.get(paramDto);
+
+        return views.isEmpty() ? 0L : views.getFirst().hits();
+    }
+
+    private Map<Long, Long> getViewsMap(List<Event> events) {
+        if (events.isEmpty()) {
+            return Map.of();
+        }
+
+        List<String> uris = events.stream().map(event -> "/events/" + event.getId()).toList();
+
+        LocalDateTime start = events.stream()
+                .map(Event::getPublishedOn)
+                .min(LocalDateTime::compareTo)
+                .orElse(LocalDateTime.now());
+
+        List<StatsDto> stats = statClient.get(new ParamDto(start, LocalDateTime.now(), uris, true));
+
+        return stats.stream().collect(Collectors.toMap(statsDto ->
+                        Long.parseLong(statsDto.uri().substring(statsDto.uri().lastIndexOf("/") + 1)),
+                        StatsDto::hits));
     }
 }
