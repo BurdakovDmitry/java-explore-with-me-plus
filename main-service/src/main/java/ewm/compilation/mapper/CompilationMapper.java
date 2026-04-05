@@ -8,23 +8,18 @@ import ewm.event.mapper.EventMapper;
 import ewm.event.service.AdminEventService;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
-
-import java.util.Collections;
 
 @Mapper(componentModel = "spring",
         uses = {AdminEventService.class, EventMapper.class},
-        imports = Collections.class)
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface CompilationMapper {
 
     CompilationDto compilationToDto(Compilation compilation);
 
-    @Mapping(target = "events", source = "newCompilationDto.events")
-    @Mapping(target = "pinned", source = "newCompilationDto.pinned", defaultExpression  = "java(false)")
+    @Mapping(target = "pinned", defaultExpression  = "java(false)")
     Compilation postDtoToCompilation(NewCompilationDto newCompilationDto);
 
-    @Mapping(target = "events", source = "updCompilationDto.events", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "pinned", source = "updCompilationDto.pinned", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "title", source = "updCompilationDto.title", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    Compilation updateDtoToCompilation(UpdateCompilationDto updCompilationDto);
+    void updateDtoToCompilation(@MappingTarget Compilation compilation, UpdateCompilationDto updCompilationDto);
 }

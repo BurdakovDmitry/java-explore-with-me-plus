@@ -20,6 +20,6 @@ public interface EventMapper {
     @Mapping(target = "views", constant = "0L")
     EventFullDto toFullDto(Event event);
 
-    @IterableMapping(nullValueMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT)
+    @IterableMapping(nullValueMappingStrategy = NullValueMappingStrategy.RETURN_NULL)
     List<EventShortDto> eventListToShort(List<Event> events);
 }

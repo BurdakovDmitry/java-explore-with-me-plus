@@ -38,11 +38,11 @@ public class AdminCompilationServiceImpl implements AdminCompilationService {
 
     @Override
     public CompilationDto update(UpdateCompilationDto updCompilationDto, Long compilationId) {
-        Compilation oldCompilation = compilationRepository.findById(compilationId).orElseThrow(
+        Compilation compilation = compilationRepository.findById(compilationId).orElseThrow(
                 () ->  new NotFoundException(String.format("Compilation with id=%d was not found", compilationId)));
-        Compilation newCompilation = compilationMapper.updateDtoToCompilation(updCompilationDto);
-        newCompilation.setId(compilationId);
-        Compilation savedCompilation = compilationRepository.save(newCompilation);
+
+        compilationMapper.updateDtoToCompilation(compilation, updCompilationDto);
+        Compilation savedCompilation = compilationRepository.save(compilation);
         log.info("Recreate updated compilation {}", savedCompilation);
         return compilationMapper.compilationToDto(savedCompilation);
     }

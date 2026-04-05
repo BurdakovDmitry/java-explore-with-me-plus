@@ -23,7 +23,7 @@ public class AdminEventServiceImpl implements AdminEventService {
     @Override
     public List<Event> findByIds(List<Long> eventIds) {
         if (eventIds == null) {
-            return List.of();
+            return null;
         }
         BooleanExpression byEventIds = QEvent.event.id.in(eventIds);
         log.info("Return users with ids={}", eventIds);
