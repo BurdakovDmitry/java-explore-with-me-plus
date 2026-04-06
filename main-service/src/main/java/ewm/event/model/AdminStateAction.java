@@ -1,4 +1,4 @@
-package ewm.event.dto;
+package ewm.event.model;
 
 public enum AdminStateAction {
     PUBLISH_EVENT,

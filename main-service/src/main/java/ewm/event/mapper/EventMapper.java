@@ -11,14 +11,14 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface EventMapper {
 
-    @Mapping(target = "views", constant = "0L")
+    @Mapping(target = "views", ignore = true)
     EventShortDto toShortDto(Event event);
 
     @Mapping(target = "confirmedRequests",
             expression = "java(requestRepository != null ? " +
                     "requestRepository.countByEventAndStatus(event, ewm.request.model.ParticipationStatus.CONFIRMED) " +
                     ": 0L)")
-    @Mapping(target = "views", constant = "0L")
+    @Mapping(target = "views", ignore = true)
     EventFullDto toFullDto(Event event,
                            @Context ParticipationRequestRepository requestRepository);
 

@@ -3,6 +3,7 @@ package ewm.event.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import ewm.common.model.Location;
 import jakarta.validation.constraints.Size;
+import ewm.event.model.AdminStateAction;
 
 import java.time.LocalDateTime;
 
@@ -28,7 +29,7 @@ public record UpdateEventAdminRequest(
 
         AdminStateAction stateAction,
 
-        @Size(min = 20, max = 120)
+        @Size(min = 3, max = 120)
         String title
 ) {
 

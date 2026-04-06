@@ -3,6 +3,7 @@ package ewm.event.service;
 import ewm.category.model.Category;
 import ewm.category.repository.CategoryRepository;
 import ewm.common.model.Location;
+import ewm.event.dto.AdminEventSearchFilter;
 import ewm.event.dto.EventFullDto;
 import ewm.event.dto.UpdateEventAdminRequest;
 import ewm.event.mapper.EventMapper;
@@ -33,14 +34,20 @@ public class AdminEventServiceImpl implements AdminEventService {
     private final EventMapper eventMapper;
 
     @Override
-    public List<EventFullDto> searchEvents(List<Long> users, List<EventState> states,
-                                           List<Long> categories, LocalDateTime rangeStart,
-                                           LocalDateTime rangeEnd, Integer from, Integer size) {
-        log.info("Search events with filters: users={}, states={}, categories={}", users, states, categories);
+    public List<EventFullDto> searchEvents(AdminEventSearchFilter filter) {
+        log.info("Search events with filters: users={}, states={}, categories={}",
+                filter.users(), filter.states(), filter.categories());
 
-        Pageable pageable = PageRequest.of(from / size, size);
+        Pageable pageable = PageRequest.of(filter.from() != null ? filter.from() / filter.size() : 0,
+                filter.size() != null ? filter.size() : 10);
 
-        return eventRepository.findEventsByFilters(users, states, categories, rangeStart, rangeEnd, pageable)
+        return eventRepository.findEventsByFilters(
+                        filter.users(),
+                        filter.states(),
+                        filter.categories(),
+                        filter.rangeStart(),
+                        filter.rangeEnd(),
+                        pageable)
                 .stream()
                 .map(event -> eventMapper.toFullDto(event, participationRequestRepository))
                 .toList();
