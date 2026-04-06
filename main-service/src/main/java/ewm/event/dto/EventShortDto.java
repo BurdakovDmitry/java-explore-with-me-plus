@@ -4,20 +4,27 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import ewm.category.model.Category;
 import ewm.event.model.Location;
 import ewm.user.dto.UserShortDto;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-public record EventShortDto(
-        Long id,
-        String annotation,
-        Category category,
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class EventShortDto {
+        private Long id;
+        private String annotation;
+        private Category category;
+        private Long confirmedRequests;
 
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        LocalDateTime eventDate,
+        private LocalDateTime eventDate;
 
-        UserShortDto initiator,
-        Boolean paid,
-        String title,
-        Long views,
-        Location location
-) {}
+        private UserShortDto initiator;
+        private Boolean paid;
+        private String title;
+        private Long views;
+        private Location location;
+}

@@ -99,7 +99,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryDto getCategoryById(Long catId) {
         Category category = categoryRepository.findById(catId)
-                .orElseThrow(() -> new NotFoundException("Категория с id= " + catId + " не найдена"));
+                .orElseThrow(() -> new NotFoundException("Category with id=" + catId + " was not found"));
 
         log.info("Получена категория с id = {}", catId);
 
