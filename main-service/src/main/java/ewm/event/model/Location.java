@@ -1,4 +1,4 @@
-package ewm.common.model;
+package ewm.event.model;
 
 import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;

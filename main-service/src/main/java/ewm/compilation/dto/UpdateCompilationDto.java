@@ -1,13 +1,10 @@
 package ewm.compilation.dto;
 
-import jakarta.validation.constraints.NotBlank;
-
 import java.util.List;
 
-public record CompilationPostDto(
+public record UpdateCompilationDto(
         List<Long> events,
 
-        @NotBlank
         String title,
 
         Boolean pinned
