@@ -11,10 +11,12 @@ import ewm.user.model.User;
 import ewm.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
@@ -38,26 +40,21 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Transactional(readOnly = true)
     public List<UserDto> findAll(AdminUserParam params) {
         Iterable<User> users;
+        Pageable pageSelected = PageRequest.of(params.from(), params.size(), Sort.by("id"));
 
         if (params.ids() == null || params.ids().isEmpty()) {
             log.info("Return all users");
-            users = userRepository.findAll();
+            users = userRepository.findAll(pageSelected);
         } else {
             BooleanExpression byUserIds = QUser.user.id.in(params.ids());
+
             log.info("Return users with ids={}", params.ids());
-            users = userRepository.findAll(byUserIds);
+            users = userRepository.findAll(byUserIds, pageSelected);
         }
 
         List<UserDto> usersDto = StreamSupport.stream(users.spliterator(), false)
-                .sorted(Comparator.comparing(User::getId))
                 .map(userMapper::userToUserDto)
                 .toList();
-
-        // TODO: переделать на запрос из БД
-        usersDto = usersDto.subList(params.from(), usersDto.size());
-        if (params.size() < usersDto.size()) {
-            usersDto = usersDto.subList(0, params.size());
-        }
 
         return usersDto;
     }
