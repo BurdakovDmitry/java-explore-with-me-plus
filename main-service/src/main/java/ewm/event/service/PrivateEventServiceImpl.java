@@ -72,21 +72,11 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new ConflictException("Event date must be at least 2 hours from now");
         }
 
-        Event event = new Event();
-        event.setAnnotation(dto.annotation());
-        event.setDescription(dto.description());
-        event.setEventDate(dto.eventDate());
-        event.setCreatedOn(LocalDateTime.now());
-        event.setPaid(dto.paid() != null ? dto.paid() : false);
-        event.setParticipantLimit(dto.participantLimit() != null ? dto.participantLimit() : 0);
-        event.setRequestModeration(dto.requestModeration() != null ? dto.requestModeration() : true);
-        event.setTitle(dto.title());
+        // Используем маппер для создания события
+        Event event = eventMapper.toEvent(dto);
         event.setInitiator(user);
         event.setState(EventState.PENDING);
-
-        if (dto.location() != null) {
-            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
-        }
+        event.setCreatedOn(LocalDateTime.now());
 
         Event saved = eventRepository.save(event);
         log.info("Event created successfully: id={}", saved.getId());
@@ -129,18 +119,10 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new ConflictException("Event date must be at least 2 hours from now");
         }
 
-        if (dto.annotation() != null) event.setAnnotation(dto.annotation());
-        if (dto.description() != null) event.setDescription(dto.description());
-        if (dto.eventDate() != null) event.setEventDate(dto.eventDate());
-        if (dto.paid() != null) event.setPaid(dto.paid());
-        if (dto.participantLimit() != null) event.setParticipantLimit(dto.participantLimit());
-        if (dto.requestModeration() != null) event.setRequestModeration(dto.requestModeration());
-        if (dto.title() != null) event.setTitle(dto.title());
+        // Используем маппер для обновления
+        eventMapper.updateEventMap(dto, event);
 
-        if (dto.location() != null) {
-            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
-        }
-
+        // Обрабатываем stateAction отдельно
         if (dto.stateAction() != null) {
             switch (dto.stateAction()) {
                 case SEND_TO_REVIEW -> event.setState(EventState.PENDING);

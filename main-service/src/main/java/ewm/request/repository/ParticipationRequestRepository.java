@@ -28,4 +28,6 @@ public interface ParticipationRequestRepository extends JpaRepository<Participat
             GROUP BY r.event.id
             """)
     List<ConfirmedRequestCount> findAllConfirmedRequests(List<Long> eventIds);
+
+    List<ParticipationRequest> findByEvent(Event event);
 }
