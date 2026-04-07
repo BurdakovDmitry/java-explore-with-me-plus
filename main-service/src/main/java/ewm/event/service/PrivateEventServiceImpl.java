@@ -6,6 +6,8 @@ import com.querydsl.jpa.JPAExpressions;
 import ewm.HitDto;
 import ewm.ParamDto;
 import ewm.StatsDto;
+import ewm.category.model.Category;
+import ewm.category.repository.CategoryRepository;
 import ewm.event.dto.*;
 import ewm.event.mapper.EventMapper;
 import ewm.request.model.ConfirmedRequestCount;
@@ -46,6 +48,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final EventMapper eventMapper;
+    private final CategoryRepository categoryRepository;
     private final StatClient statClient = new StatClient("http://ewm-stats-server:9090");
 
     @Override
@@ -301,5 +304,157 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         return stats.stream().collect(Collectors.toMap(statsDto ->
                         Long.parseLong(statsDto.uri().substring(statsDto.uri().lastIndexOf("/") + 1)),
                 StatsDto::hits));
+    }
+
+    @Override
+    public List<EventFullDto> searchEventsAdmin(AdminEventSearchFilter filter) {
+        log.info("Search events with filters: {}", filter);
+
+        if (filter.getRangeStart() != null && filter.getRangeEnd() != null &&
+                filter.getRangeStart().isAfter(filter.getRangeEnd())) {
+            throw new ValidationException("rangeEnd не может быть раньше rangeStart");
+        }
+
+        QEvent event = QEvent.event;
+        BooleanBuilder predicate = new BooleanBuilder();
+
+        if (filter.getUsers() != null && !filter.getUsers().isEmpty()) {
+            predicate.and(event.initiator.id.in(filter.getUsers()));
+        }
+
+        if (filter.getStates() != null && !filter.getStates().isEmpty()) {
+            predicate.and(event.state.in(filter.getStates()));
+        }
+
+        if (filter.getCategories() != null && !filter.getCategories().isEmpty()) {
+            predicate.and(event.category.id.in(filter.getCategories()));
+        }
+
+        if (filter.getRangeStart() != null) {
+            predicate.and(event.eventDate.goe(filter.getRangeStart()));
+        }
+
+        if (filter.getRangeEnd() != null) {
+            predicate.and(event.eventDate.loe(filter.getRangeEnd()));
+        }
+
+        int from = filter.getFrom() != null ? filter.getFrom() : 0;
+        int size = filter.getSize() != null ? filter.getSize() : 10;
+        Pageable pageable = PageRequest.of(from / size, size);
+
+        List<Event> events = eventRepository.findAll(predicate, pageable).getContent();
+
+        if (events.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
+
+        Map<Long, Long> confirmedRequestsMap = requestRepository
+                .findAllConfirmedRequests(eventIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        ConfirmedRequestCount::eventId,
+                        ConfirmedRequestCount::count
+                ));
+
+        Map<Long, Long> viewsMap = getViewsMap(events);
+
+        return events.stream()
+                .map(eventMapper::toFullDto)
+                .peek(fullDto -> {
+                    fullDto.setConfirmedRequests(
+                            confirmedRequestsMap.getOrDefault(fullDto.getId(), 0L));
+                    fullDto.setViews(
+                            viewsMap.getOrDefault(fullDto.getId(), 0L));
+                })
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public EventFullDto updateEvent(Long eventId, UpdateEventAdminRequest dto) {
+        log.info("Update event with ID: {}", eventId);
+
+        Event event = existsEvent(eventId);
+
+        if (dto.eventDate() != null && dto.eventDate().isBefore(LocalDateTime.now().plusHours(1))) {
+            throw new ConflictException("Дата события должна быть не раньше, чем через час");
+        }
+
+        if (dto.annotation() != null) {
+            event.setAnnotation(dto.annotation());
+        }
+
+        if (dto.description() != null) {
+            event.setDescription(dto.description());
+        }
+
+        if (dto.eventDate() != null) {
+            event.setEventDate(dto.eventDate());
+        }
+
+        if (dto.paid() != null) {
+            event.setPaid(dto.paid());
+        }
+
+        if (dto.participantLimit() != null) {
+            event.setParticipantLimit(dto.participantLimit());
+        }
+
+        if (dto.requestModeration() != null) {
+            event.setRequestModeration(dto.requestModeration());
+        }
+
+        if (dto.title() != null) {
+            event.setTitle(dto.title());
+        }
+
+        if (dto.location() != null) {
+            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
+        }
+
+        if (dto.category() != null) {
+            Category category = categoryRepository.findById(dto.category())
+                    .orElseThrow(() -> new NotFoundException("Category with id= " + dto.category() + " was not found"));
+            event.setCategory(category);
+        }
+
+        if (dto.stateAction() != null) {
+            switch (dto.stateAction()) {
+                case PUBLISH_EVENT -> {
+                    if (event.getState() != EventState.PENDING) {
+                        throw new ConflictException(
+                                "An event cannot be published unless it is in the required status (PENDING): "
+                                        + event.getState());
+                    }
+                    event.setState(EventState.PUBLISHED);
+                    event.setPublishedOn(LocalDateTime.now());
+                    log.info("Event с id={} успешно опубликовано", eventId);
+                }
+                case REJECT_EVENT -> {
+                    if (event.getState() == EventState.PUBLISHED) {
+                        throw new ConflictException("Cannot publish the event because " +
+                                "it's not in the right state: PUBLISHED");
+                    }
+                    event.setState(EventState.CANCELED);
+                    log.info("Event с id={} отклонено", eventId);
+                }
+            }
+        }
+
+        Event updated = eventRepository.save(event);
+        log.info("Event c id={} успешно обновлено", updated.getId());
+
+        return eventMapper.toFullDto(updated, requestRepository);
+    }
+
+    public List<Event> findByIds(List<Long> eventIds) {
+        return eventRepository.findAllById(eventIds);
+    }
+
+    private Event existsEvent(Long eventId) {
+        return eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event with id= " + eventId + " was not found"));
     }
 }

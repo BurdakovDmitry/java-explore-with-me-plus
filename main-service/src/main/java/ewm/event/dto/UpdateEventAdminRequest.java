@@ -1,7 +1,7 @@
 package ewm.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import ewm.common.model.Location;
+import ewm.event.model.Location;
 import jakarta.validation.constraints.Size;
 import ewm.event.model.AdminStateAction;
 
