@@ -3,8 +3,6 @@ package ewm.event.mapper;
 import ewm.event.dto.EventFullDto;
 import ewm.event.dto.EventShortDto;
 import ewm.event.model.Event;
-import ewm.request.repository.ParticipationRequestRepository;
-import org.mapstruct.Context;
 import org.mapstruct.IterableMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

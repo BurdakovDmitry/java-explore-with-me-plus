@@ -220,7 +220,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
         List<Long> eventIds = events.stream().map(Event::getId).toList();
 
-        Map<Long,Long> confirmedRequestsMap = requestRepository.findAllConfirmedRequests(eventIds).stream()
+        Map<Long, Long> confirmedRequestsMap = requestRepository.findAllConfirmedRequests(eventIds).stream()
                 .collect(Collectors.toMap(ConfirmedRequestCount::eventId, ConfirmedRequestCount::count));
         Map<Long, Long> viewsMap = getViewsMap(events);
 
@@ -368,7 +368,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         }
 
 
-        Pageable pageable = PageRequest.of(filter.from()/ filter.size(), filter.size());
+        Pageable pageable = PageRequest.of(filter.from() / filter.size(), filter.size());
 
         List<Event> events = eventRepository.findAll(predicate, pageable).getContent();
 
