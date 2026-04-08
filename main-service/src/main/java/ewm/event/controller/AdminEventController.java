@@ -24,7 +24,7 @@ public class AdminEventController {
     private final PrivateEventService adminEventService;
 
     @GetMapping
-    public List<EventFullDto> getEvents(AdminEventSearchFilter filter) {
+    public List<EventFullDto> getEvents(@Valid AdminEventSearchFilter filter) {
         log.info("GET /admin/events: filter={}", filter);
         return adminEventService.searchEventsAdmin(filter);
     }

@@ -22,11 +22,6 @@ public interface EventMapper {
     @Mapping(target = "views", ignore = true)
     EventFullDto toFullDto(Event event);
 
-    @Mapping(target = "confirmedRequests", ignore = true)
-    @Mapping(target = "views", ignore = true)
-    EventFullDto toFullDto(Event event,
-                           @Context ParticipationRequestRepository requestRepository);
-
     @IterableMapping(nullValueMappingStrategy = NullValueMappingStrategy.RETURN_NULL)
     List<EventShortDto> eventListToShort(List<Event> events);
 }

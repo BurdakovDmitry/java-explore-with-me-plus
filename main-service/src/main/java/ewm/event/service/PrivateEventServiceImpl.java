@@ -37,6 +37,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -77,6 +78,9 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
         Event event = new Event();
         event.setAnnotation(dto.annotation());
+        Category category = categoryRepository.findById(dto.category())
+                .orElseThrow(() -> new NotFoundException("Category not found"));
+        event.setCategory(category);
         event.setDescription(dto.description());
         event.setEventDate(dto.eventDate());
         event.setCreatedOn(LocalDateTime.now());
@@ -274,14 +278,18 @@ public class PrivateEventServiceImpl implements PrivateEventService {
                 .orElseThrow(() -> new NotFoundException("Event with id=" + eventId + " was not found"));
     }
 
-    private void saveHit(HttpServletRequest request) {
-        HitDto hitDto = new HitDto(
-                "ewm-main-service",
-                request.getRequestURI(),
-                request.getRemoteAddr(),
-                LocalDateTime.now());
 
-        statClient.hit(hitDto);
+    private void saveHit(HttpServletRequest request) {
+        try {
+            HitDto hitDto = new HitDto(
+                    "ewm-main-service",
+                    request.getRequestURI(),
+                    request.getRemoteAddr(),
+                    LocalDateTime.now());
+            statClient.hit(hitDto);
+        } catch (Exception e) {
+            log.warn("Не удалось сохранить hit в сервис статистики: {}", e.getMessage());
+        }
     }
 
     private Long getViews(ParamDto paramDto) {
@@ -291,56 +299,76 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     }
 
     private Map<Long, Long> getViewsMap(List<Event> events) {
-        String url = "/events/";
-        List<String> uris = events.stream().map(event -> url + event.getId()).toList();
+        try {
+            String url = "/events/";
+            List<String> uris = events.stream()
+                    .map(event -> url + event.getId())
+                    .toList();
 
-        LocalDateTime start = events.stream()
-                .map(Event::getPublishedOn)
-                .min(LocalDateTime::compareTo)
-                .orElse(LocalDateTime.now());
+            LocalDateTime start = events.stream()
+                    .map(Event::getPublishedOn)
+                    .filter(Objects::nonNull)
+                    .min(LocalDateTime::compareTo)
+                    .orElse(LocalDateTime.now());
 
-        List<StatsDto> stats = statClient.get(new ParamDto(start, LocalDateTime.now(), uris, true));
+            List<StatsDto> stats = statClient.get(new ParamDto(start, LocalDateTime.now(), uris, true));
 
-        return stats.stream().collect(Collectors.toMap(statsDto ->
-                        Long.parseLong(statsDto.uri().substring(statsDto.uri().lastIndexOf("/") + 1)),
-                StatsDto::hits));
+            return stats.stream()
+                    .filter(statsDto -> {
+                        String lastPart = statsDto.uri()
+                                .substring(statsDto.uri().lastIndexOf("/") + 1);
+                        try {
+                            Long.parseLong(lastPart);
+                            return true;
+                        } catch (NumberFormatException e) {
+                            return false;
+                        }
+                    })
+                    .collect(Collectors.toMap(
+                            statsDto -> Long.parseLong(
+                                    statsDto.uri().substring(statsDto.uri().lastIndexOf("/") + 1)),
+                            StatsDto::hits
+                    ));
+        } catch (Exception e) {
+            log.warn("Не удалось получить статистику просмотров: {}", e.getMessage());
+            return Map.of();
+        }
     }
 
     @Override
     public List<EventFullDto> searchEventsAdmin(AdminEventSearchFilter filter) {
         log.info("Search events with filters: {}", filter);
 
-        if (filter.getRangeStart() != null && filter.getRangeEnd() != null &&
-                filter.getRangeStart().isAfter(filter.getRangeEnd())) {
+        if (filter.rangeStart() != null && filter.rangeEnd() != null &&
+                filter.rangeStart().isAfter(filter.rangeEnd())) {
             throw new ValidationException("rangeEnd не может быть раньше rangeStart");
         }
 
         QEvent event = QEvent.event;
         BooleanBuilder predicate = new BooleanBuilder();
 
-        if (filter.getUsers() != null && !filter.getUsers().isEmpty()) {
-            predicate.and(event.initiator.id.in(filter.getUsers()));
+        if (filter.users() != null && !filter.users().isEmpty()) {
+            predicate.and(event.initiator.id.in(filter.users()));
         }
 
-        if (filter.getStates() != null && !filter.getStates().isEmpty()) {
-            predicate.and(event.state.in(filter.getStates()));
+        if (filter.states() != null && !filter.states().isEmpty()) {
+            predicate.and(event.state.in(filter.states()));
         }
 
-        if (filter.getCategories() != null && !filter.getCategories().isEmpty()) {
-            predicate.and(event.category.id.in(filter.getCategories()));
+        if (filter.categories() != null && !filter.categories().isEmpty()) {
+            predicate.and(event.category.id.in(filter.categories()));
         }
 
-        if (filter.getRangeStart() != null) {
-            predicate.and(event.eventDate.goe(filter.getRangeStart()));
+        if (filter.rangeStart() != null) {
+            predicate.and(event.eventDate.goe(filter.rangeStart()));
         }
 
-        if (filter.getRangeEnd() != null) {
-            predicate.and(event.eventDate.loe(filter.getRangeEnd()));
+        if (filter.rangeEnd() != null) {
+            predicate.and(event.eventDate.loe(filter.rangeEnd()));
         }
 
-        int from = filter.getFrom() != null ? filter.getFrom() : 0;
-        int size = filter.getSize() != null ? filter.getSize() : 10;
-        Pageable pageable = PageRequest.of(from / size, size);
+
+        Pageable pageable = PageRequest.of(filter.from()/ filter.size(), filter.size());
 
         List<Event> events = eventRepository.findAll(predicate, pageable).getContent();
 
@@ -446,7 +474,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         Event updated = eventRepository.save(event);
         log.info("Event c id={} успешно обновлено", updated.getId());
 
-        return eventMapper.toFullDto(updated, requestRepository);
+        return eventMapper.toFullDto(updated);
     }
 
     public List<Event> findByIds(List<Long> eventIds) {

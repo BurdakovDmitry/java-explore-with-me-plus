@@ -28,7 +28,10 @@ public interface CompilationMapper {
     void updateDtoToCompilation(@MappingTarget Compilation compilation, UpdateCompilationDto updCompilationDto);
 
     default List<Event> mapEventIds(List<Long> eventIds, @Context PrivateEventService eventService) {
-        if (eventIds == null || eventIds.isEmpty()) {
+        if (eventIds == null) {
+            return null;
+        }
+        if (eventIds.isEmpty()) {
             return List.of();
         }
         return eventService.findByIds(eventIds);
