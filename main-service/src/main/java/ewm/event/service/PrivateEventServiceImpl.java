@@ -11,7 +11,6 @@ import ewm.event.mapper.EventMapper;
 import ewm.request.model.ConfirmedRequestCount;
 import ewm.event.model.Event;
 import ewm.event.model.EventState;
-import ewm.event.model.Location;
 import ewm.event.model.QEvent;
 import ewm.exception.ValidationException;
 import ewm.request.model.ParticipationStatus;
