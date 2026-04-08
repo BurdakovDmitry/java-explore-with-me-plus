@@ -16,8 +16,8 @@ public interface EventMapper {
     @Mapping(target = "views", constant = "0L")
     EventShortDto toShortDto(Event event);
 
-    @Mapping(target = "confirmedRequests", constant = "0L")
-    @Mapping(target = "views", constant = "0L")
+    @Mapping(target = "confirmedRequests", ignore = true)
+    @Mapping(target = "views", ignore = true)
     EventFullDto toFullDto(Event event);
 
     @IterableMapping(nullValueMappingStrategy = NullValueMappingStrategy.RETURN_NULL)
