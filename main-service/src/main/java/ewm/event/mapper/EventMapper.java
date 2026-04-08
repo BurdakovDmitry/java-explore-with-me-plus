@@ -21,8 +21,6 @@ public interface EventMapper {
     @Mapping(target = "views", ignore = true)
     EventShortDto toShortDto(Event event);
 
-    @Mapping(target = "views", ignore = true)
-    @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "views", ignore = true)
     EventFullDto toFullDto(Event event);

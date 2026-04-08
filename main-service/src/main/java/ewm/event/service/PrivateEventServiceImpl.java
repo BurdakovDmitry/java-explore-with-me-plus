@@ -10,6 +10,7 @@ import ewm.category.model.Category;
 import ewm.category.repository.CategoryRepository;
 import ewm.event.dto.*;
 import ewm.event.mapper.EventMapper;
+import ewm.event.model.Location;
 import ewm.request.model.ConfirmedRequestCount;
 import ewm.event.model.Event;
 import ewm.event.model.EventState;
