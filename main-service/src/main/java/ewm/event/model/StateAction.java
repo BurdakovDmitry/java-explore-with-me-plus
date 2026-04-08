@@ -1,4 +1,4 @@
-package ewm.event.dto;
+package ewm.event.model;
 
 public enum StateAction {
     SEND_TO_REVIEW,

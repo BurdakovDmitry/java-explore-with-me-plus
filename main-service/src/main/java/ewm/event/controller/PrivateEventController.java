@@ -5,11 +5,16 @@ import ewm.event.dto.EventShortDto;
 import ewm.event.dto.NewEventDto;
 import ewm.event.dto.UpdateEventUserRequest;
 import ewm.event.service.PrivateEventService;
+import ewm.request.dto.EventRequestStatusUpdateRequest;
+import ewm.request.dto.EventRequestStatusUpdateResult;
+import ewm.request.dto.ParticipationRequestDto;
+import ewm.request.service.ParticipationRequestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.List;
 
@@ -20,6 +25,7 @@ import java.util.List;
 public class PrivateEventController {
 
     private final PrivateEventService eventService;
+    private final ParticipationRequestService participationRequestService;
 
     @GetMapping
     public List<EventShortDto> getEvents(
@@ -58,5 +64,24 @@ public class PrivateEventController {
     ) {
         log.info("PATCH /users/{}/events/{}: {}", userId, eventId, updateRequest);
         return eventService.updateEvent(userId, eventId, updateRequest);
+    }
+
+    @GetMapping("/{eventId}/requests")
+    public List<ParticipationRequestDto> getEventRequests(
+            @PathVariable Long userId,
+            @PathVariable Long eventId
+    ) {
+        log.info("GET /users/{}/events/{}/requests", userId, eventId);
+        return participationRequestService.getEventRequests(userId, eventId);
+    }
+
+    @PatchMapping("/{eventId}/requests")
+    public EventRequestStatusUpdateResult updateRequestStatus(
+            @PathVariable Long userId,
+            @PathVariable Long eventId,
+            @RequestBody EventRequestStatusUpdateRequest requestUpdate
+    ) {
+        log.info("PATCH /users/{}/events/{}/requests", userId, eventId);
+        return participationRequestService.updateRequestStatus(userId, eventId, requestUpdate);
     }
 }
