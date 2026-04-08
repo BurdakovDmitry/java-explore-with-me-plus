@@ -31,12 +31,12 @@ PUBLIC: (Предлагаю CommentController в директории сomment)
 
 "GET/comments/{commentsId}" - поиск опубликованного комментария
 
+"GET/comments/{eventId}" - поиск опубликованных комментариев у события 
+
 -------------------------------------------------------------------------
 
 PRIVATE: (Предлагаю PrivateCommentController в директории user)
 "GET/users/{userId}/comments" - получение всех опубликованных комментариев пользователя
-
-"GET/users/{userId}/events/{eventId}/comments" - получение всех опубликованных комментариев пользователя по событию
 
 "POST/users/{userId}/events/{eventId}/comments" - добавление комментария пользователем после посещения события
 
