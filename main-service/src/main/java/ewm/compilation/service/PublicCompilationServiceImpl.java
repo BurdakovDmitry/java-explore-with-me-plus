@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class PublicCompilationServiceImpl implements ewm.compilation.service.PublicCompilationService {
-
     private final CompilationRepository compilationRepository;
     private final CompilationMapper compilationMapper;
 
@@ -35,7 +34,6 @@ public class PublicCompilationServiceImpl implements ewm.compilation.service.Pub
         } else {
             compilations = compilationRepository.findAll(pageable).getContent();
         }
-
         return compilations.stream()
                 .map(compilationMapper::compilationToDto)
                 .collect(Collectors.toList());

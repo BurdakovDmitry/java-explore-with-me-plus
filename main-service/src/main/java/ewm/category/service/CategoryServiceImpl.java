@@ -16,35 +16,34 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
     @Override
-    @Transactional
     public CategoryDto addCategory(NewCategoryDto newCategoryDto) {
         log.info("Добавление новой категории: {}", newCategoryDto.name());
         Category category = categoryMapper.toEntity(newCategoryDto);
 
-        try {
-            categoryRepository.save(category);
-            log.info("Добавлена категория с ID: {}", category.getId());
-        } catch (DataIntegrityViolationException e) {
+        if (categoryRepository.existsByName(category.getName())) {
             log.warn("Уже существует категория с именем: {}", category.getName());
             throw new ConflictException("Категория с именем " + category.getName() + " уже существует");
         }
+
+        category = categoryRepository.save(category);
+        log.info("Добавлена категория с ID: {}", category.getId());
 
         return categoryMapper.toDto(category);
     }
 
     @Override
-    @Transactional
     public void deleteCategoryById(Long categoryId) {
         log.info("Удаление категории с id: {}", categoryId);
 
@@ -61,8 +60,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     // имя категории должно быть уникальным
     @Override
-    @Transactional
-    public CategoryDto updateCategory(Long categoryId, CategoryDto categoryDto) {
+    public CategoryDto updateCategory(Long categoryId, NewCategoryDto categoryDto) {
         log.info("Обновление категории с id: {}, новое имя: {}", categoryId, categoryDto.name());
 
         Category category = categoryRepository.findById(categoryId)
@@ -71,15 +69,14 @@ public class CategoryServiceImpl implements CategoryService {
                    return new NotFoundException("Категория с id= " + categoryId + " не найдена");
                 });
 
-        category.setName(categoryDto.name());
-
-        try {
-            category = categoryRepository.save(category);
-            log.info("Категория с id {} обновлена", categoryId);
-        } catch (DataIntegrityViolationException  e) {
-            log.warn("Категория с именем: {} Уже существует ", categoryDto.name());
+        if (categoryRepository.existsByNameAndIdNot(categoryDto.name(), categoryId)) {
+            log.warn("Уже существует категория с именем: {}", categoryDto.name());
             throw new ConflictException("Категория с именем " + categoryDto.name() + " уже существует");
         }
+
+        category.setName(categoryDto.name());
+        category = categoryRepository.save(category);
+        log.info("Категория с id {} обновлена", categoryId);
 
         return categoryMapper.toDto(category);
     }
@@ -88,7 +85,7 @@ public class CategoryServiceImpl implements CategoryService {
     public List<CategoryDto> getAllCategory(Integer from, Integer size) {
         Pageable pageable = PageRequest.of(from / size, size, Sort.by("id").ascending());
 
-        List<Category> categories = categoryRepository.findAll(pageable).getContent();
+        List<Category> categories = categoryRepository.findAll(pageable).stream().toList();
 
         log.info("Получен список категорий: {}", categories);
         return categories.stream()

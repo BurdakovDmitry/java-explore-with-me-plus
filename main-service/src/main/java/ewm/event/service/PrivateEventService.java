@@ -14,21 +14,21 @@ import java.util.List;
 
 public interface PrivateEventService {
 
-    List<EventShortDto> getEvents(Long userId, Integer from, Integer size);
+    List<EventShortDto> getEventsPrivate(Long userId, Integer from, Integer size);
 
-    EventFullDto addEvent(Long userId, NewEventDto newEventDto);
+    EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto);
 
-    EventFullDto getEvent(Long userId, Long eventId);
+    EventFullDto getEventByIdPrivate(Long userId, Long eventId);
 
-    EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest updateRequest);
+    EventFullDto updateEventPrivate(Long userId, Long eventId, UpdateEventUserRequest updateRequest);
 
-    List<EventShortDto> getPublicEvents(PublicEventParamDto paramDto, HttpServletRequest request);
+    List<EventShortDto> getEventsPublic(PublicEventParamDto paramDto, HttpServletRequest request);
 
-    EventFullDto getPublicEventById(Long id, HttpServletRequest request);
+    EventFullDto getEventByIdPublic(Long id, HttpServletRequest request);
 
     List<EventFullDto> searchEventsAdmin(AdminEventSearchFilter filter);
 
-    EventFullDto updateEvent(Long eventId, UpdateEventAdminRequest dto);
+    EventFullDto updateEventAdmin(Long eventId, UpdateEventAdminRequest dto);
 
     List<Event> findByIds(List<Long> eventIds);
 }

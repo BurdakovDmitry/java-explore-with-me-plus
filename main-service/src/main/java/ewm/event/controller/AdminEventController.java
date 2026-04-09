@@ -33,6 +33,6 @@ public class AdminEventController {
     public EventFullDto updateEvent(@PathVariable Long eventId,
                                     @Valid @RequestBody UpdateEventAdminRequest updateRequest) {
         log.info("PATCH /admin/events/{}: {}", eventId, updateRequest);
-        return adminEventService.updateEvent(eventId, updateRequest);
+        return adminEventService.updateEventAdmin(eventId, updateRequest);
     }
 }

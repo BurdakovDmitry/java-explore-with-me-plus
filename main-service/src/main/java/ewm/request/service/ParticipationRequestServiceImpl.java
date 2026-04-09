@@ -72,7 +72,7 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
             throw new ConflictException("The participant limit for this event has been reached");
         }
 
-        if (event.getRequestModeration() == false) {
+        if (event.getRequestModeration() == false || event.getParticipantLimit() == 0) {
             request.setStatus(ParticipationStatus.CONFIRMED);
         } else {
             request.setStatus(ParticipationStatus.PENDING);
@@ -150,6 +150,10 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
         // Текущее количество подтверждённых заявок
         long confirmedRequests = requestRepository.countByEventAndStatus(event, ParticipationStatus.CONFIRMED);
+
+        if (confirmedRequests >= event.getParticipantLimit()) {
+            throw new ConflictException("The participant limit for this event has been reached");
+        }
 
         for (ParticipationRequest request : requests) {
             if (!request.getEvent().getId().equals(eventId)) {

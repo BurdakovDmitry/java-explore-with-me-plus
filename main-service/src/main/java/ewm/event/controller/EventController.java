@@ -28,7 +28,7 @@ public class EventController {
 
         log.info("GET /event: {}", param);
 
-        return eventService.getPublicEvents(param, request);
+        return eventService.getEventsPublic(param, request);
     }
 
     @GetMapping("/{id}")
@@ -37,6 +37,6 @@ public class EventController {
 
         log.info("GET /event/{id): id={}", id);
 
-        return eventService.getPublicEventById(id, request);
+        return eventService.getEventByIdPublic(id, request);
     }
 }

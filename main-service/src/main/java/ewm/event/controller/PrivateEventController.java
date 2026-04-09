@@ -34,7 +34,7 @@ public class PrivateEventController {
             @RequestParam(defaultValue = "10") Integer size
     ) {
         log.info("GET /users/{}/events: from={}, size={}", userId, from, size);
-        return eventService.getEvents(userId, from, size);
+        return eventService.getEventsPrivate(userId, from, size);
     }
 
     @PostMapping
@@ -44,7 +44,7 @@ public class PrivateEventController {
             @Valid @RequestBody NewEventDto newEventDto
     ) {
         log.info("POST /users/{}/events: {}", userId, newEventDto);
-        return eventService.addEvent(userId, newEventDto);
+        return eventService.addEventPrivate(userId, newEventDto);
     }
 
     @GetMapping("/{eventId}")
@@ -53,7 +53,7 @@ public class PrivateEventController {
             @PathVariable Long eventId
     ) {
         log.info("GET /users/{}/events/{}", userId, eventId);
-        return eventService.getEvent(userId, eventId);
+        return eventService.getEventByIdPrivate(userId, eventId);
     }
 
     @PatchMapping("/{eventId}")
@@ -63,7 +63,7 @@ public class PrivateEventController {
             @Valid @RequestBody UpdateEventUserRequest updateRequest
     ) {
         log.info("PATCH /users/{}/events/{}: {}", userId, eventId, updateRequest);
-        return eventService.updateEvent(userId, eventId, updateRequest);
+        return eventService.updateEventPrivate(userId, eventId, updateRequest);
     }
 
     @GetMapping("/{eventId}/requests")

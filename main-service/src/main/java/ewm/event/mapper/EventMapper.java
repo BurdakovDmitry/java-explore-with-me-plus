@@ -18,6 +18,7 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface EventMapper {
 
+    @Mapping(target = "confirmedRequests", ignore = true)
     @Mapping(target = "views", ignore = true)
     EventShortDto toShortDto(Event event);
 
@@ -25,12 +26,9 @@ public interface EventMapper {
     @Mapping(target = "views", ignore = true)
     EventFullDto toFullDto(Event event);
 
-    @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdOn", ignore = true)
-    @Mapping(target = "publishedOn", ignore = true)
     @Mapping(target = "state", ignore = true)
     @Mapping(target = "initiator", ignore = true)
-    @Mapping(target = "compilations", ignore = true)
     @Mapping(target = "category", ignore = true)
     Event toEvent(NewEventDto dto);
 

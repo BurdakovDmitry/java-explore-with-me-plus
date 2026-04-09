@@ -2,6 +2,7 @@ package ewm.event.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import ewm.event.model.Location;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import ewm.event.model.AdminStateAction;
 
@@ -23,6 +24,7 @@ public record UpdateEventAdminRequest(
 
         Boolean paid,
 
+        @PositiveOrZero
         Integer participantLimit,
 
         Boolean requestModeration,

@@ -53,7 +53,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     private final StatClient statClient = new StatClient("http://ewm-stats-server:9090");
 
     @Override
-    public List<EventShortDto> getEvents(Long userId, Integer from, Integer size) {
+    public List<EventShortDto> getEventsPrivate(Long userId, Integer from, Integer size) {
         log.info("Getting events for user id={}, from={}, size={}", userId, from, size);
 
         getUserOrThrow(userId);
@@ -67,7 +67,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
     @Override
     @Transactional
-    public EventFullDto addEvent(Long userId, NewEventDto dto) {
+    public EventFullDto addEventPrivate(Long userId, NewEventDto dto) {
         log.info("Adding event for user id={}", userId);
 
         User user = getUserOrThrow(userId);
@@ -76,8 +76,13 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new ConflictException("Event date must be at least 2 hours from now");
         }
 
+        Category category = categoryRepository.findById(dto.category())
+                .orElseThrow(() -> new NotFoundException("Category with id= " + dto.category() + " was not found"));
+
         // Используем маппер для создания события
         Event event = eventMapper.toEvent(dto);
+
+        event.setCategory(category);
         event.setInitiator(user);
         event.setState(EventState.PENDING);
         event.setCreatedOn(LocalDateTime.now());
@@ -89,7 +94,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     }
 
     @Override
-    public EventFullDto getEvent(Long userId, Long eventId) {
+    public EventFullDto getEventByIdPrivate(Long userId, Long eventId) {
         log.info("Getting event id={} for user id={}", eventId, userId);
 
         getUserOrThrow(userId);
@@ -104,7 +109,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
     @Override
     @Transactional
-    public EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest dto) {
+    public EventFullDto updateEventPrivate(Long userId, Long eventId, UpdateEventUserRequest dto) {
         log.info("Updating event id={} for user id={}", eventId, userId);
 
         getUserOrThrow(userId);
@@ -141,11 +146,13 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     }
 
     @Override
-    public List<EventShortDto> getPublicEvents(PublicEventParamDto eventParamDto, HttpServletRequest request) {
+    public List<EventShortDto> getEventsPublic(PublicEventParamDto eventParamDto, HttpServletRequest request) {
         if (eventParamDto.rangeStart() != null && eventParamDto.rangeEnd() != null &&
                 eventParamDto.rangeStart().isAfter(eventParamDto.rangeEnd())) {
             throw new ValidationException("End date cannot be before start date");
         }
+
+        saveHit(request);
 
         QEvent event = QEvent.event;
         QParticipationRequest parRequest = QParticipationRequest.participationRequest;
@@ -215,15 +222,15 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             shortsDto.sort(Comparator.comparing(EventShortDto::getViews).reversed());
         }
 
-        saveHit(request);
-
         log.info("Получен список запросов по указанным фильтрам");
 
         return shortsDto;
     }
 
     @Override
-    public EventFullDto getPublicEventById(Long id, HttpServletRequest request) {
+    public EventFullDto getEventByIdPublic(Long id, HttpServletRequest request) {
+        saveHit(request);
+
         Event event = getEventOrThrow(id);
 
         if (event.getState() != EventState.PUBLISHED) {
@@ -239,8 +246,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
         fullDto.setConfirmedRequests(requestRepository.countByEventAndStatus(event, ParticipationStatus.CONFIRMED));
         fullDto.setViews(getViews(paramDto));
-
-        saveHit(request);
 
         log.info("Получено событие с id = {}", id);
 
@@ -277,7 +282,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         return views.isEmpty() ? 0L : views.getFirst().hits();
     }
 
-    private Map<Long, Long> getViewsMap(List<Event> events) {
+    public Map<Long, Long> getViewsMap(List<Event> events) {
         try {
             String url = "/events/";
             List<String> uris = events.stream()
@@ -380,13 +385,13 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
     @Override
     @Transactional
-    public EventFullDto updateEvent(Long eventId, UpdateEventAdminRequest dto) {
+    public EventFullDto updateEventAdmin(Long eventId, UpdateEventAdminRequest dto) {
         log.info("Update event with ID: {}", eventId);
 
         Event event = existsEvent(eventId);
 
         if (dto.eventDate() != null && dto.eventDate().isBefore(LocalDateTime.now().plusHours(1))) {
-            throw new ConflictException("Дата события должна быть не раньше, чем через час");
+            throw new ValidationException("Дата события должна быть не раньше, чем через час");
         }
 
         if (dto.annotation() != null) {
@@ -462,6 +467,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
     private Event existsEvent(Long eventId) {
         return eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Event with id= " + eventId + " was not found"));
+                .orElseThrow(() -> new NotFoundException("Event with id=" + eventId + " was not found"));
     }
 }
