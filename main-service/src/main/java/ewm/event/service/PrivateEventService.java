@@ -31,4 +31,6 @@ public interface PrivateEventService {
     EventFullDto updateEvent(Long eventId, UpdateEventAdminRequest dto);
 
     List<Event> findByIds(List<Long> eventIds);
+
+    Event existsEvent(Long eventId);
 }
