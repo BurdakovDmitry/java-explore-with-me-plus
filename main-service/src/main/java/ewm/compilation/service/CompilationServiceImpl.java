@@ -12,6 +12,8 @@ import ewm.exception.NotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,7 +22,7 @@ import java.util.List;
 @Service
 @Transactional
 @RequiredArgsConstructor
-public class AdminCompilationServiceImpl implements AdminCompilationService {
+public class CompilationServiceImpl implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final CompilationMapper compilationMapper;
     private final EventRepository eventRepository;
@@ -41,16 +43,14 @@ public class AdminCompilationServiceImpl implements AdminCompilationService {
 
     @Override
     public void delete(Long compilationId) {
-        Compilation compilation = compilationRepository.findById(compilationId).orElseThrow(
-                () ->  new NotFoundException(String.format("Compilation with id=%d was not found", compilationId)));
+        Compilation compilation = existsCategory(compilationId);
         log.info("Delete compilation with id {}", compilationId);
         compilationRepository.delete(compilation);
     }
 
     @Override
     public CompilationDto update(UpdateCompilationDto updCompilationDto, Long compilationId) {
-        Compilation compilation = compilationRepository.findById(compilationId).orElseThrow(
-                () ->  new NotFoundException(String.format("Compilation with id=%d was not found", compilationId)));
+        Compilation compilation = existsCategory(compilationId);
 
         if (updCompilationDto.events() != null) {
             List<Event> events = eventRepository.findAllById(updCompilationDto.events());
@@ -61,5 +61,35 @@ public class AdminCompilationServiceImpl implements AdminCompilationService {
         Compilation savedCompilation = compilationRepository.save(compilation);
         log.info("Recreate updated compilation {}", savedCompilation);
         return compilationMapper.compilationToDto(savedCompilation);
+    }
+
+    @Override
+    public List<CompilationDto> getCompilations(Boolean pinned, Integer from, Integer size) {
+        log.info("Return compilation with pinned={}, from={}, size={}", pinned, from, size);
+        Pageable pageable = PageRequest.of(from / size, size);
+        List<Compilation> compilations;
+
+        if (pinned != null) {
+            compilations = compilationRepository.findByPinned(pinned, pageable);
+        } else {
+            compilations = compilationRepository.findAll(pageable).getContent();
+        }
+        return compilations.stream()
+                .map(compilationMapper::compilationToDto)
+                .toList();
+    }
+
+    @Override
+    public CompilationDto getCompilation(Long compId) {
+        log.info("Looking for compilation with id={}", compId);
+
+        Compilation compilation = existsCategory(compId);
+
+        return compilationMapper.compilationToDto(compilation);
+    }
+
+    private Compilation existsCategory(Long compId) {
+        return compilationRepository.findById(compId)
+                .orElseThrow(() -> new NotFoundException(String.format("Compilation with id=%d was not found", compId)));
     }
 }

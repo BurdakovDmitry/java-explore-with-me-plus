@@ -3,7 +3,7 @@ package ewm.compilation.controller;
 import ewm.compilation.dto.CompilationDto;
 import ewm.compilation.dto.NewCompilationDto;
 import ewm.compilation.dto.UpdateCompilationDto;
-import ewm.compilation.service.AdminCompilationService;
+import ewm.compilation.service.CompilationService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/admin/compilations")
 public class AdminCompilationController {
-    private final AdminCompilationService adminCompilationService;
+    private final CompilationService adminCompilationService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

@@ -3,7 +3,7 @@ package ewm.user.controller;
 import ewm.user.dto.AdminUserParam;
 import ewm.user.dto.UserDto;
 import ewm.user.dto.UserPostDto;
-import ewm.user.service.AdminUserService;
+import ewm.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @RequestMapping("/admin/users")
 public class AdminUserController {
-    private final AdminUserService adminUserService;
+    private final UserService adminUserService;
 
     @GetMapping
     public List<UserDto> findAll(@RequestParam(required = false) List<Long> ids,

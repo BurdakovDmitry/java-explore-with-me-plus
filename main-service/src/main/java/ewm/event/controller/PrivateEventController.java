@@ -4,11 +4,12 @@ import ewm.event.dto.EventFullDto;
 import ewm.event.dto.EventShortDto;
 import ewm.event.dto.NewEventDto;
 import ewm.event.dto.UpdateEventUserRequest;
-import ewm.event.service.PrivateEventService;
+import ewm.event.service.EventService;
 import ewm.request.dto.EventRequestStatusUpdateRequest;
 import ewm.request.dto.EventRequestStatusUpdateResult;
 import ewm.request.dto.ParticipationRequestDto;
 import ewm.request.service.ParticipationRequestService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PrivateEventController {
 
-    private final PrivateEventService eventService;
+    private final EventService eventService;
     private final ParticipationRequestService participationRequestService;
 
     @GetMapping
@@ -50,10 +51,11 @@ public class PrivateEventController {
     @GetMapping("/{eventId}")
     public EventFullDto getEvent(
             @PathVariable Long userId,
-            @PathVariable Long eventId
+            @PathVariable Long eventId,
+            HttpServletRequest request
     ) {
         log.info("GET /users/{}/events/{}", userId, eventId);
-        return eventService.getEventByIdPrivate(userId, eventId);
+        return eventService.getEventByIdPrivate(userId, eventId, request);
     }
 
     @PatchMapping("/{eventId}")

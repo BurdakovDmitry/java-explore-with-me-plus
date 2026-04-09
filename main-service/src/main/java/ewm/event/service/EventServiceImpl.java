@@ -44,13 +44,13 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class PrivateEventServiceImpl implements PrivateEventService {
+public class EventServiceImpl implements EventService {
     private final ParticipationRequestRepository requestRepository;
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final EventMapper eventMapper;
     private final CategoryRepository categoryRepository;
-    private final StatClient statClient = new StatClient("http://ewm-stats-server:9090");
+    private final StatClient statClient;
 
     @Override
     public List<EventShortDto> getEventsPrivate(Long userId, Integer from, Integer size) {
@@ -58,10 +58,26 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
         getUserOrThrow(userId);
 
-        Pageable pageable = PageRequest.of(from / size, size);
-        return eventRepository.findByInitiatorId(userId, pageable)
-                .stream()
+        Pageable pageable = PageRequest.of(from / size, size, Sort.by("id"));
+
+        List<Event> events = eventRepository.findByInitiatorId(userId, pageable);
+
+        if (events.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
+
+        Map<Long, Long> confirmedRequestsMap = requestRepository.findAllConfirmedRequests(eventIds).stream()
+                .collect(Collectors.toMap(ConfirmedRequestCount::eventId, ConfirmedRequestCount::count));
+        Map<Long, Long> viewsMap = getViewsMap(events, false);
+
+        return events.stream()
                 .map(eventMapper::toShortDto)
+                .peek(shortDto -> {
+                    shortDto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(shortDto.getId(), 0L));
+                    shortDto.setViews(viewsMap.getOrDefault(shortDto.getId(), 0L));
+                })
                 .toList();
     }
 
@@ -94,7 +110,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     }
 
     @Override
-    public EventFullDto getEventByIdPrivate(Long userId, Long eventId) {
+    public EventFullDto getEventByIdPrivate(Long userId, Long eventId, HttpServletRequest request) {
         log.info("Getting event id={} for user id={}", eventId, userId);
 
         getUserOrThrow(userId);
@@ -104,7 +120,15 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new ConflictException("Event does not belong to user");
         }
 
-        return eventMapper.toFullDto(event);
+        LocalDateTime start = event.getPublishedOn() != null ? event.getPublishedOn() : event.getCreatedOn();
+        ParamDto paramDto = new ParamDto(start, LocalDateTime.now(), List.of(request.getRequestURI()), false);
+
+        EventFullDto fullDto = eventMapper.toFullDto(event);
+
+        fullDto.setConfirmedRequests(requestRepository.countByEventAndStatus(event, ParticipationStatus.CONFIRMED));
+        fullDto.setViews(getViews(paramDto));
+
+        return fullDto;
     }
 
     @Override
@@ -208,7 +232,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
         Map<Long, Long> confirmedRequestsMap = requestRepository.findAllConfirmedRequests(eventIds).stream()
                 .collect(Collectors.toMap(ConfirmedRequestCount::eventId, ConfirmedRequestCount::count));
-        Map<Long, Long> viewsMap = getViewsMap(events);
+        Map<Long, Long> viewsMap = getViewsMap(events, true);
 
         List<EventShortDto> shortsDto = events.stream()
                 .map(eventMapper::toShortDto)
@@ -264,15 +288,16 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
 
     private void saveHit(HttpServletRequest request) {
-        try {
             HitDto hitDto = new HitDto(
                     "ewm-main-service",
                     request.getRequestURI(),
                     request.getRemoteAddr(),
                     LocalDateTime.now());
+        try {
             statClient.hit(hitDto);
+            log.info("Статистика сохранена для URI: {}", request.getRequestURI());
         } catch (Exception e) {
-            log.warn("Не удалось сохранить hit в сервис статистики: {}", e.getMessage());
+            log.warn("Не удалось сохранить статистику: {}", e.getMessage());
         }
     }
 
@@ -282,20 +307,19 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         return views.isEmpty() ? 0L : views.getFirst().hits();
     }
 
-    public Map<Long, Long> getViewsMap(List<Event> events) {
+    private Map<Long, Long> getViewsMap(List<Event> events, boolean unique) {
         try {
             String url = "/events/";
             List<String> uris = events.stream()
                     .map(event -> url + event.getId())
                     .toList();
-
             LocalDateTime start = events.stream()
                     .map(Event::getPublishedOn)
                     .filter(Objects::nonNull)
                     .min(LocalDateTime::compareTo)
                     .orElse(LocalDateTime.now());
 
-            List<StatsDto> stats = statClient.get(new ParamDto(start, LocalDateTime.now(), uris, true));
+            List<StatsDto> stats = statClient.get(new ParamDto(start, LocalDateTime.now(), uris, unique));
 
             return stats.stream()
                     .filter(statsDto -> {
@@ -370,7 +394,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
                         ConfirmedRequestCount::count
                 ));
 
-        Map<Long, Long> viewsMap = getViewsMap(events);
+        Map<Long, Long> viewsMap = getViewsMap(events, false);
 
         return events.stream()
                 .map(eventMapper::toFullDto)
@@ -459,10 +483,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         log.info("Event c id={} успешно обновлено", updated.getId());
 
         return eventMapper.toFullDto(updated);
-    }
-
-    public List<Event> findByIds(List<Long> eventIds) {
-        return eventRepository.findAllById(eventIds);
     }
 
     private Event existsEvent(Long eventId) {

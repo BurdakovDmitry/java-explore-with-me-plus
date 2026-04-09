@@ -6,7 +6,7 @@ import ewm.user.dto.UserPostDto;
 
 import java.util.List;
 
-public interface AdminUserService {
+public interface UserService {
     UserDto create(UserPostDto userPostDto);
 
     List<UserDto> findAll(AdminUserParam params);

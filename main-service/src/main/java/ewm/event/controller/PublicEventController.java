@@ -3,7 +3,7 @@ package ewm.event.controller;
 import ewm.event.dto.EventFullDto;
 import ewm.event.dto.EventShortDto;
 import ewm.event.dto.PublicEventParamDto;
-import ewm.event.service.PrivateEventService;
+import ewm.event.service.EventService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,24 +19,20 @@ import java.util.List;
 @RestController
 @RequestMapping("/events")
 @RequiredArgsConstructor
-public class EventController {
-    private final PrivateEventService eventService;
+public class PublicEventController {
+    private final EventService eventService;
 
     @GetMapping
     public List<EventShortDto> getPublicEvents(@Valid PublicEventParamDto param,
                                               HttpServletRequest request) {
-
         log.info("GET /event: {}", param);
-
         return eventService.getEventsPublic(param, request);
     }
 
     @GetMapping("/{id}")
     public EventFullDto getPublicEventById(@PathVariable Long id,
                                            HttpServletRequest request) {
-
-        log.info("GET /event/{id): id={}", id);
-
+        log.info("GET /event/{id}: id={}", id);
         return eventService.getEventByIdPublic(id, request);
     }
 }
