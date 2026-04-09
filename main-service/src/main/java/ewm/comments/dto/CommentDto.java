@@ -2,7 +2,8 @@ package ewm.comments.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import ewm.comments.model.CommentStatus;
-import ewm.user.dto.UserDto;
+import ewm.event.dto.EventPreviewDto;
+import ewm.user.dto.UserShortDto;
 
 import java.time.LocalDateTime;
 
@@ -14,9 +15,9 @@ public record CommentDto(
 
         CommentStatus status,
 
-        CommentEventDto event,
+        EventPreviewDto event,
 
-        UserDto author,
+        UserShortDto author,
 
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         LocalDateTime createdOn
