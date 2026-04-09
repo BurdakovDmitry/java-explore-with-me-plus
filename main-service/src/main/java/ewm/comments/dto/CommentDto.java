@@ -7,7 +7,6 @@ import ewm.user.dto.UserShortDto;
 
 import java.time.LocalDateTime;
 
-// Это DTO возвращается в ответ на GET-запросы
 public record CommentDto(
         Long id,
 
