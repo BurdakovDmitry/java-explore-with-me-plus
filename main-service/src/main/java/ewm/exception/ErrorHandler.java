@@ -76,4 +76,11 @@ public class ErrorHandler {
         log.warn("409 {}", e.getMessage());
         return new ErrorResponse(HttpStatus.CONFLICT, "For the requested operation the conditions are not met.", e.getMessage(), LocalDateTime.now());
     }
+
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponse handleUnauthorized(final NotAuthorized e) {
+        log.warn("401 {}", e.getMessage());
+        return new ErrorResponse(HttpStatus.UNAUTHORIZED, "User is not allowed to do this change.", e.getMessage(), LocalDateTime.now());
+    }
 }

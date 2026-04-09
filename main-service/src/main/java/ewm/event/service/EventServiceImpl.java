@@ -485,7 +485,13 @@ public class EventServiceImpl implements EventService {
         return eventMapper.toFullDto(updated);
     }
 
-    private Event existsEvent(Long eventId) {
+    @Override
+    public List<Event> findByIds(List<Long> eventIds) {
+        return eventRepository.findAllById(eventIds);
+    }
+
+    @Override
+    public Event existsEvent(Long eventId) {
         return eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event with id=" + eventId + " was not found"));
     }
