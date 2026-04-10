@@ -208,4 +208,40 @@ public class CommentServiceImpl implements CommentService {
         return commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("Comment with id= " + commentId + " was not found"));
     }
+    @Override
+    public List<CommentDto> getPublishedComments(String text, List<Long> events, String rangeStart, String rangeEnd, int from, int size, String sort) {
+    Sort sortBy = Sort.by("created").descending();
+    if (sort != null && sort.equalsIgnoreCase("asc")) {
+        sortBy = Sort.by("created").ascending();
+    }
+    Pageable pageable = PageRequest.of(from / size, size, sortBy);
+
+    LocalDateTime start = rangeStart != null ? LocalDateTime.parse(rangeStart, FORMATTER) : null;
+    LocalDateTime end = rangeEnd != null ? LocalDateTime.parse(rangeEnd, FORMATTER) : null;
+
+        List<Comment> comments = commentRepository.findPublishedCommentsWithFilters(text, events, start, end, pageable);
+        return comments.stream()
+                .map(commentMapper::toCommentDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public CommentDto getPublishedComment(Long commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("Comment not found with id: " + commentId));
+        if (comment.getStatus() != CommentStatus.PUBLISHED) {
+            throw new NotFoundException("Comment not found or not published");
+        }
+        return commentMapper.toCommentDto(comment);
+    }
+
+    @Override
+    public List<CommentDto> getPublishedCommentsByEvent(Long eventId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event not found with id: " + eventId));
+        List<Comment> comments = commentRepository.findByEventAndStatus(event, CommentStatus.PUBLISHED);
+        return comments.stream()
+                .map(commentMapper::toCommentDto)
+                .collect(Collectors.toList());
+    }
 }
