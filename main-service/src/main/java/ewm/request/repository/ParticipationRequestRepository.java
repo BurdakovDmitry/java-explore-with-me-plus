@@ -23,7 +23,7 @@ public interface ParticipationRequestRepository extends JpaRepository<Participat
     // Количество заявок для событий
     @Query("""
             SELECT new ewm.request.model.ConfirmedRequestCount(r.event.id, COUNT(r.id))
-            FROM Request AS r
+            FROM ParticipationRequest AS r
             WHERE r.event.id IN :eventIds AND r.status = 'CONFIRMED'
             GROUP BY r.event.id
             """)

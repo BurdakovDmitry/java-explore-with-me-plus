@@ -6,6 +6,8 @@ import com.querydsl.jpa.JPAExpressions;
 import ewm.HitDto;
 import ewm.ParamDto;
 import ewm.StatsDto;
+import ewm.category.model.Category;
+import ewm.category.repository.CategoryRepository;
 import ewm.event.dto.*;
 import ewm.event.mapper.EventMapper;
 import ewm.request.model.ConfirmedRequestCount;
@@ -35,6 +37,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -46,6 +49,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final EventMapper eventMapper;
+    private final CategoryRepository categoryRepository;
     private final StatClient statClient = new StatClient("http://ewm-stats-server:9090");
 
     @Override
@@ -74,6 +78,9 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
         Event event = new Event();
         event.setAnnotation(dto.annotation());
+        Category category = categoryRepository.findById(dto.category())
+                .orElseThrow(() -> new NotFoundException("Category not found"));
+        event.setCategory(category);
         event.setDescription(dto.description());
         event.setEventDate(dto.eventDate());
         event.setCreatedOn(LocalDateTime.now());
@@ -213,7 +220,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
 
         List<Long> eventIds = events.stream().map(Event::getId).toList();
 
-        Map<Long,Long> confirmedRequestsMap = requestRepository.findAllConfirmedRequests(eventIds).stream()
+        Map<Long, Long> confirmedRequestsMap = requestRepository.findAllConfirmedRequests(eventIds).stream()
                 .collect(Collectors.toMap(ConfirmedRequestCount::eventId, ConfirmedRequestCount::count));
         Map<Long, Long> viewsMap = getViewsMap(events);
 
@@ -271,14 +278,18 @@ public class PrivateEventServiceImpl implements PrivateEventService {
                 .orElseThrow(() -> new NotFoundException("Event with id=" + eventId + " was not found"));
     }
 
-    private void saveHit(HttpServletRequest request) {
-        HitDto hitDto = new HitDto(
-                "ewm-main-service",
-                request.getRequestURI(),
-                request.getRemoteAddr(),
-                LocalDateTime.now());
 
-        statClient.hit(hitDto);
+    private void saveHit(HttpServletRequest request) {
+        try {
+            HitDto hitDto = new HitDto(
+                    "ewm-main-service",
+                    request.getRequestURI(),
+                    request.getRemoteAddr(),
+                    LocalDateTime.now());
+            statClient.hit(hitDto);
+        } catch (Exception e) {
+            log.warn("Не удалось сохранить hit в сервис статистики: {}", e.getMessage());
+        }
     }
 
     private Long getViews(ParamDto paramDto) {
@@ -288,18 +299,190 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     }
 
     private Map<Long, Long> getViewsMap(List<Event> events) {
-        String url = "/events/";
-        List<String> uris = events.stream().map(event -> url + event.getId()).toList();
+        try {
+            String url = "/events/";
+            List<String> uris = events.stream()
+                    .map(event -> url + event.getId())
+                    .toList();
 
-        LocalDateTime start = events.stream()
-                .map(Event::getPublishedOn)
-                .min(LocalDateTime::compareTo)
-                .orElse(LocalDateTime.now());
+            LocalDateTime start = events.stream()
+                    .map(Event::getPublishedOn)
+                    .filter(Objects::nonNull)
+                    .min(LocalDateTime::compareTo)
+                    .orElse(LocalDateTime.now());
 
-        List<StatsDto> stats = statClient.get(new ParamDto(start, LocalDateTime.now(), uris, true));
+            List<StatsDto> stats = statClient.get(new ParamDto(start, LocalDateTime.now(), uris, true));
 
-        return stats.stream().collect(Collectors.toMap(statsDto ->
-                        Long.parseLong(statsDto.uri().substring(statsDto.uri().lastIndexOf("/") + 1)),
-                StatsDto::hits));
+            return stats.stream()
+                    .filter(statsDto -> {
+                        String lastPart = statsDto.uri()
+                                .substring(statsDto.uri().lastIndexOf("/") + 1);
+                        try {
+                            Long.parseLong(lastPart);
+                            return true;
+                        } catch (NumberFormatException e) {
+                            return false;
+                        }
+                    })
+                    .collect(Collectors.toMap(
+                            statsDto -> Long.parseLong(
+                                    statsDto.uri().substring(statsDto.uri().lastIndexOf("/") + 1)),
+                            StatsDto::hits
+                    ));
+        } catch (Exception e) {
+            log.warn("Не удалось получить статистику просмотров: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    @Override
+    public List<EventFullDto> searchEventsAdmin(AdminEventSearchFilter filter) {
+        log.info("Search events with filters: {}", filter);
+
+        if (filter.rangeStart() != null && filter.rangeEnd() != null &&
+                filter.rangeStart().isAfter(filter.rangeEnd())) {
+            throw new ValidationException("rangeEnd не может быть раньше rangeStart");
+        }
+
+        QEvent event = QEvent.event;
+        BooleanBuilder predicate = new BooleanBuilder();
+
+        if (filter.users() != null && !filter.users().isEmpty()) {
+            predicate.and(event.initiator.id.in(filter.users()));
+        }
+
+        if (filter.states() != null && !filter.states().isEmpty()) {
+            predicate.and(event.state.in(filter.states()));
+        }
+
+        if (filter.categories() != null && !filter.categories().isEmpty()) {
+            predicate.and(event.category.id.in(filter.categories()));
+        }
+
+        if (filter.rangeStart() != null) {
+            predicate.and(event.eventDate.goe(filter.rangeStart()));
+        }
+
+        if (filter.rangeEnd() != null) {
+            predicate.and(event.eventDate.loe(filter.rangeEnd()));
+        }
+
+
+        Pageable pageable = PageRequest.of(filter.from() / filter.size(), filter.size());
+
+        List<Event> events = eventRepository.findAll(predicate, pageable).getContent();
+
+        if (events.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
+
+        Map<Long, Long> confirmedRequestsMap = requestRepository
+                .findAllConfirmedRequests(eventIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        ConfirmedRequestCount::eventId,
+                        ConfirmedRequestCount::count
+                ));
+
+        Map<Long, Long> viewsMap = getViewsMap(events);
+
+        return events.stream()
+                .map(eventMapper::toFullDto)
+                .peek(fullDto -> {
+                    fullDto.setConfirmedRequests(
+                            confirmedRequestsMap.getOrDefault(fullDto.getId(), 0L));
+                    fullDto.setViews(
+                            viewsMap.getOrDefault(fullDto.getId(), 0L));
+                })
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public EventFullDto updateEvent(Long eventId, UpdateEventAdminRequest dto) {
+        log.info("Update event with ID: {}", eventId);
+
+        Event event = existsEvent(eventId);
+
+        if (dto.eventDate() != null && dto.eventDate().isBefore(LocalDateTime.now().plusHours(1))) {
+            throw new ConflictException("Дата события должна быть не раньше, чем через час");
+        }
+
+        if (dto.annotation() != null) {
+            event.setAnnotation(dto.annotation());
+        }
+
+        if (dto.description() != null) {
+            event.setDescription(dto.description());
+        }
+
+        if (dto.eventDate() != null) {
+            event.setEventDate(dto.eventDate());
+        }
+
+        if (dto.paid() != null) {
+            event.setPaid(dto.paid());
+        }
+
+        if (dto.participantLimit() != null) {
+            event.setParticipantLimit(dto.participantLimit());
+        }
+
+        if (dto.requestModeration() != null) {
+            event.setRequestModeration(dto.requestModeration());
+        }
+
+        if (dto.title() != null) {
+            event.setTitle(dto.title());
+        }
+
+        if (dto.location() != null) {
+            event.setLocation(new Location(dto.location().getLat(), dto.location().getLon()));
+        }
+
+        if (dto.category() != null) {
+            Category category = categoryRepository.findById(dto.category())
+                    .orElseThrow(() -> new NotFoundException("Category with id= " + dto.category() + " was not found"));
+            event.setCategory(category);
+        }
+
+        if (dto.stateAction() != null) {
+            switch (dto.stateAction()) {
+                case PUBLISH_EVENT -> {
+                    if (event.getState() != EventState.PENDING) {
+                        throw new ConflictException(
+                                "An event cannot be published unless it is in the required status (PENDING): "
+                                        + event.getState());
+                    }
+                    event.setState(EventState.PUBLISHED);
+                    event.setPublishedOn(LocalDateTime.now());
+                    log.info("Event с id={} успешно опубликовано", eventId);
+                }
+                case REJECT_EVENT -> {
+                    if (event.getState() == EventState.PUBLISHED) {
+                        throw new ConflictException("Cannot publish the event because " +
+                                "it's not in the right state: PUBLISHED");
+                    }
+                    event.setState(EventState.CANCELED);
+                    log.info("Event с id={} отклонено", eventId);
+                }
+            }
+        }
+
+        Event updated = eventRepository.save(event);
+        log.info("Event c id={} успешно обновлено", updated.getId());
+
+        return eventMapper.toFullDto(updated);
+    }
+
+    public List<Event> findByIds(List<Long> eventIds) {
+        return eventRepository.findAllById(eventIds);
+    }
+
+    private Event existsEvent(Long eventId) {
+        return eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event with id= " + eventId + " was not found"));
     }
 }
