@@ -55,7 +55,7 @@ public class PrivateEventController {
             HttpServletRequest request
     ) {
         log.info("GET /users/{}/events/{}", userId, eventId);
-        return eventService.getEventByIdPrivate(userId, eventId, request);
+        return eventService.getEventByIdPrivate(userId, eventId, request.getRequestURI());
     }
 
     @PatchMapping("/{eventId}")

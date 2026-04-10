@@ -7,6 +7,7 @@ import ewm.category.model.Category;
 import ewm.category.repository.CategoryRepository;
 import ewm.exception.ConflictException;
 import ewm.exception.NotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -19,12 +20,13 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-
+@Transactional(readOnly = true)
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final CategoryMapper categoryMapper;
 
     @Override
+    @Transactional
     public CategoryDto addCategory(NewCategoryDto newCategoryDto) {
         log.info("Добавление новой категории: {}", newCategoryDto.name());
 
@@ -42,6 +44,7 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     public void deleteCategoryById(Long categoryId) {
         log.info("Удаление категории с id: {}", categoryId);
 
@@ -55,6 +58,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     // имя категории должно быть уникальным
     @Override
+    @Transactional
     public CategoryDto updateCategory(Long categoryId, NewCategoryDto categoryDto) {
         log.info("Обновление категории с id: {}, новое имя: {}", categoryId, categoryDto.name());
 

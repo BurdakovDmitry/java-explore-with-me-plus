@@ -110,7 +110,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventFullDto getEventByIdPrivate(Long userId, Long eventId, HttpServletRequest request) {
+    public EventFullDto getEventByIdPrivate(Long userId, Long eventId, String url) {
         log.info("Getting event id={} for user id={}", eventId, userId);
 
         getUserOrThrow(userId);
@@ -121,7 +121,7 @@ public class EventServiceImpl implements EventService {
         }
 
         LocalDateTime start = event.getPublishedOn() != null ? event.getPublishedOn() : event.getCreatedOn();
-        ParamDto paramDto = new ParamDto(start, LocalDateTime.now(), List.of(request.getRequestURI()), false);
+        ParamDto paramDto = new ParamDto(start, LocalDateTime.now(), List.of(url), false);
 
         EventFullDto fullDto = eventMapper.toFullDto(event);
 
@@ -307,7 +307,7 @@ public class EventServiceImpl implements EventService {
         return views.isEmpty() ? 0L : views.getFirst().hits();
     }
 
-    private Map<Long, Long> getViewsMap(List<Event> events, boolean unique) {
+    public Map<Long, Long> getViewsMap(List<Event> events, boolean unique) {
         try {
             String url = "/events/";
             List<String> uris = events.stream()

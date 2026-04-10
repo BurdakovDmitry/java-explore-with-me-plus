@@ -7,9 +7,11 @@ import ewm.event.dto.NewEventDto;
 import ewm.event.dto.PublicEventParamDto;
 import ewm.event.dto.UpdateEventAdminRequest;
 import ewm.event.dto.UpdateEventUserRequest;
+import ewm.event.model.Event;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
+import java.util.Map;
 
 public interface EventService {
 
@@ -17,7 +19,7 @@ public interface EventService {
 
     EventFullDto addEventPrivate(Long userId, NewEventDto newEventDto);
 
-    EventFullDto getEventByIdPrivate(Long userId, Long eventId, HttpServletRequest request);
+    EventFullDto getEventByIdPrivate(Long userId, Long eventId, String url);
 
     EventFullDto updateEventPrivate(Long userId, Long eventId, UpdateEventUserRequest updateRequest);
 
@@ -28,4 +30,6 @@ public interface EventService {
     List<EventFullDto> searchEventsAdmin(AdminEventSearchFilter filter);
 
     EventFullDto updateEventAdmin(Long eventId, UpdateEventAdminRequest dto);
+
+    Map<Long, Long> getViewsMap(List<Event> events, boolean unique);
 }
