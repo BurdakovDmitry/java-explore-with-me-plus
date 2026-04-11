@@ -477,11 +477,13 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         return eventMapper.toFullDto(updated);
     }
 
+    @Override
     public List<Event> findByIds(List<Long> eventIds) {
         return eventRepository.findAllById(eventIds);
     }
 
-    private Event existsEvent(Long eventId) {
+    @Override
+    public Event existsEvent(Long eventId) {
         return eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event with id= " + eventId + " was not found"));
     }
