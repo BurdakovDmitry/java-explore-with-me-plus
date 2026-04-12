@@ -2,13 +2,21 @@ package ewm.comments.service;
 
 import ewm.comments.dto.CommentDto;
 
+import ewm.comments.dto.PostCommentParam;
+import ewm.comments.dto.UpdateCommentParam;
+
 import java.util.List;
 
 public interface CommentService {
+    CommentDto create(PostCommentParam postCommentParam);
 
-    List<CommentDto> getPublishedComments(String text, List<Long> events, String rangeStart, String rangeEnd, int from, int size, String sort);
+    CommentDto update(UpdateCommentParam updCommentParam);
 
-    CommentDto getPublishedComment(Long commentId);
+    void delete(Long userId, Long commentId);
 
-    List<CommentDto> getPublishedCommentsByEvent(Long eventId);
+     List<CommentDto> findAllByAuthor(Long userId);
+
+    CommentDto findByIdAndAuthor(Long userId, Long commentId);
+
+    List<CommentDto> findAllByEventAndAuthor(Long userId, Long eventId);
 }

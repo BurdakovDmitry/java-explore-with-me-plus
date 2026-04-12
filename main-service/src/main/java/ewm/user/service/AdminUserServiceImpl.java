@@ -66,4 +66,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         log.info("Delete user with id {}", userId);
         userRepository.delete(user);
     }
+
+    @Override
+    public User findById(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () ->  new NotFoundException(String.format("User with id=%d was not found", userId)));
+        return user;
+    }
 }

@@ -18,6 +18,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.CurrentTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -50,5 +51,6 @@ public class Comment {
     private User author;
 
     @Column(name = "created_on", nullable = false)
+    @CurrentTimestamp
     private LocalDateTime createdOn;
 }
