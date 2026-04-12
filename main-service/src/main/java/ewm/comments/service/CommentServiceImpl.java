@@ -62,7 +62,7 @@ public class CommentServiceImpl implements CommentService {
         userRepository.findById(updCommentParam.author()).orElseThrow(
                 () -> new NotFoundException(String.format("User with id=%d was not found", updCommentParam.author())));
 
-        if (comment.getAuthor().getId() != updCommentParam.author()) {
+        if (!comment.getAuthor().getId().equals(updCommentParam.author())) {
             throw new NotAuthorized("Comment can be edited only by its author.");
         }
 
@@ -78,7 +78,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentRepository.findById(commentId).orElseThrow(
                 () -> new NotFoundException(String.format("Comment with id=%d was not found", commentId)));
 
-        if (comment.getAuthor().getId() != userId) {
+        if (!comment.getAuthor().getId().equals(userId)) {
             throw new NotAuthorized("Comment can be deleted only by its author.");
         }
 
@@ -120,7 +120,7 @@ public class CommentServiceImpl implements CommentService {
         userRepository.findById(userId).orElseThrow(
                 () -> new NotFoundException(String.format("User with id=%d was not found", userId)));
 
-        if (comment.getAuthor().getId() != userId) {
+        if (!comment.getAuthor().getId().equals(userId)) {
             throw new NotAuthorized("Only author is allowed to see this comment");
         }
 
