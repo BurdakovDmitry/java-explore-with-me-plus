@@ -1,10 +1,14 @@
 package ewm.comments.controller;
 
 import ewm.comments.dto.CommentDto;
+import ewm.comments.dto.CommentSearchParams;
 import ewm.comments.service.CommentService;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -18,13 +22,14 @@ public class PublicCommentController {
     public List<CommentDto> getComments(
             @RequestParam(required = false) String text,
             @RequestParam(required = false) List<Long> events,
-            @RequestParam(required = false) String rangeStart,
-            @RequestParam(required = false) String rangeEnd,
-            @RequestParam(defaultValue = "0") int from,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
+            @RequestParam(defaultValue = "0") @Min(0) Integer from,
+            @RequestParam(defaultValue = "10") @Min(1) Integer size,
             @RequestParam(required = false) String sort
     ) {
-        return commentService.getPublishedComments(text, events, rangeStart, rangeEnd, from, size, sort);
+        CommentSearchParams params = new CommentSearchParams(text, events, rangeStart, rangeEnd, from, size, sort);
+        return commentService.getPublishedComments(params);
     }
 
     @GetMapping("/{commentId}")
@@ -32,7 +37,7 @@ public class PublicCommentController {
         return commentService.getPublishedComment(commentId);
     }
 
-    @GetMapping("/event/{eventId}")
+    @GetMapping("/events/{eventId}")
     public List<CommentDto> getCommentsByEvent(@PathVariable Long eventId) {
         return commentService.getPublishedCommentsByEvent(eventId);
     }
