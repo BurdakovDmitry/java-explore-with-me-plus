@@ -2,7 +2,6 @@ package ewm.comments.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import ewm.comments.model.CommentStatus;
-import ewm.event.dto.EventShortDto;
 import ewm.user.dto.UserDto;
 
 import java.time.LocalDateTime;
@@ -15,7 +14,7 @@ public record CommentDto(
 
         CommentStatus status,
 
-        EventShortDto event,
+        CommentEventDto event,
 
         UserDto author,
 
