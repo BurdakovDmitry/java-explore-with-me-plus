@@ -8,6 +8,7 @@ import ewm.event.service.PrivateEventService;
 import ewm.user.mapper.UserMapper;
 import ewm.user.service.AdminUserService;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 import java.util.List;
 
