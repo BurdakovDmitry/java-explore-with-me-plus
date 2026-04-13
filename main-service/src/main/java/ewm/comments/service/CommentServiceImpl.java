@@ -172,7 +172,7 @@ public class CommentServiceImpl implements CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("Comment not found with id: " + commentId));
         if (comment.getStatus() != CommentStatus.PUBLISHED) {
-            throw new NotFoundException("Comment not found or not published");
+            throw new NotFoundException("Comment is not published");
         }
         return commentMapper.toCommentDto(comment);
     }
