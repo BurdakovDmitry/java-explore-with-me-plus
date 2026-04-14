@@ -2,7 +2,6 @@ package ewm.comments.controller;
 
 import ewm.comments.dto.AdminCommentSearchFilter;
 import ewm.comments.dto.CommentDto;
-import ewm.comments.dto.CommentFullDto;
 import ewm.comments.dto.UpdateCommentStatusRequest;
 import ewm.comments.service.CommentService;
 import jakarta.validation.Valid;
@@ -33,7 +32,7 @@ public class AdminCommentController {
         return commentService.searchComments(filter);
     }
 
-    @PatchMapping("/{commentsId}")
+    @PatchMapping("/{commentId}")
     public CommentDto updateStatusComment(@PathVariable Long commentId,
                                               @Valid @RequestBody UpdateCommentStatusRequest updateStatus) {
         log.info("Patch/admin/comments/{}", commentId);
