@@ -1,20 +1,27 @@
 package ewm.comments.service;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import ewm.comments.dto.AdminCommentSearchFilter;
 import ewm.comments.dto.CommentDto;
 import ewm.comments.dto.PostCommentParam;
 import ewm.comments.dto.UpdateCommentParam;
+import ewm.comments.dto.UpdateCommentStatusRequest;
 import ewm.comments.mapper.CommentMapper;
 import ewm.comments.model.Comment;
 import ewm.comments.model.CommentStatus;
+import ewm.comments.model.QComment;
 import ewm.comments.repository.CommentRepository;
 import ewm.event.repository.EventRepository;
+import ewm.exception.ConflictException;
 import ewm.exception.NotAuthorized;
 import ewm.exception.NotFoundException;
-import ewm.comments.model.QComment;
+import ewm.exception.ValidationException;
 import ewm.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
