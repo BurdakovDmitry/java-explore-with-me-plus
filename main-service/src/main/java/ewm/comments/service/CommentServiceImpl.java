@@ -190,6 +190,10 @@ public class CommentServiceImpl implements CommentService {
 
         List<Comment> comments = new ArrayList<>();
         commentRepository.findAll(predicate).forEach(comments::add);
+        return comments.stream()
+                .map(commentMapper::toCommentDto)
+                .toList();
+    }
 
     @Override
     public List<CommentDto> searchComments(AdminCommentSearchFilter filter) {
@@ -274,11 +278,5 @@ public class CommentServiceImpl implements CommentService {
     private Comment existsComment(Long commentId) {
         return commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("Comment with id= " + commentId + " was not found"));
-    }
-}
-
-        return comments.stream()
-                .map(commentMapper::toCommentDto)
-                .toList();
     }
 }
