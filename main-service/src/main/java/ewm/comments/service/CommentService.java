@@ -2,7 +2,6 @@ package ewm.comments.service;
 
 import ewm.comments.dto.AdminCommentSearchFilter;
 import ewm.comments.dto.CommentDto;
-
 import ewm.comments.dto.PostCommentParam;
 import ewm.comments.dto.UpdateCommentParam;
 import ewm.comments.dto.UpdateCommentStatusRequest;
@@ -23,6 +22,8 @@ public interface CommentService {
     List<CommentDto> findAllByEventAndAuthor(Long userId, Long eventId);
 
     List<CommentDto> searchComments(AdminCommentSearchFilter filter);
+
+    CommentDto findCommentById(Long commentId);
 
     CommentDto updateStatusComment(Long commentId, UpdateCommentStatusRequest status);
 

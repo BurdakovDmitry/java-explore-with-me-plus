@@ -172,6 +172,12 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
+    public CommentDto findCommentById(Long commentId) {
+        log.info("Admin find comment id={}", commentId);
+        return commentMapper.toCommentDto(existsComment(commentId));
+    }
+
+    @Override
     @Transactional
     public CommentDto updateStatusComment(Long commentId, UpdateCommentStatusRequest request) {
         log.info("Admin update comment id={} with status={}", commentId, request.status());
