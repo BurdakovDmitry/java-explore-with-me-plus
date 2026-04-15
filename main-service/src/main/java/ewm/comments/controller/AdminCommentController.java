@@ -32,6 +32,12 @@ public class AdminCommentController {
         return commentService.searchComments(filter);
     }
 
+    @GetMapping("/{commentId}")
+    public CommentDto findCommentById(@PathVariable Long commentId) {
+        log.info("GET/admin/comments/{}", commentId);
+        return commentService.findCommentById(commentId);
+    }
+
     @PatchMapping("/{commentId}")
     public CommentDto updateStatusComment(@PathVariable Long commentId,
                                               @Valid @RequestBody UpdateCommentStatusRequest updateStatus) {
