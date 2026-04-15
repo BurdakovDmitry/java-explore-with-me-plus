@@ -17,19 +17,13 @@ import ewm.event.repository.EventRepository;
 import ewm.exception.ConflictException;
 import ewm.exception.NotAuthorized;
 import ewm.exception.NotFoundException;
-<<<<<<< HEAD
 import ewm.exception.ValidationException;
-=======
->>>>>>> 0f0ec33 (fix)
 import ewm.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-<<<<<<< HEAD
-=======
 import org.springframework.data.domain.Sort;
->>>>>>> 0f0ec33 (fix)
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -135,7 +129,69 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-<<<<<<< HEAD
+    public List<CommentDto> getPublishedComments(CommentSearchParams params) {
+        // Проверка дат
+        if (params.rangeStart() != null && params.rangeEnd() != null) {
+            if (params.rangeStart().isAfter(params.rangeEnd())) {
+                throw new IllegalArgumentException("rangeStart не может быть позже rangeEnd");
+            }
+        }
+
+        Sort sortBy = Sort.by("createdOn").descending();
+        if (params.sort() != null && params.sort().equalsIgnoreCase("asc")) {
+            sortBy = Sort.by("createdOn").ascending();
+        }
+        Pageable pageable = PageRequest.of(params.from() / params.size(), params.size(), sortBy);
+
+        // QueryDSL
+        QComment qComment = QComment.comment1;
+        BooleanBuilder predicate = new BooleanBuilder();
+        predicate.and(qComment.status.eq(CommentStatus.PUBLISHED));
+
+        if (params.text() != null && !params.text().isBlank()) {
+            predicate.and(qComment.comment.containsIgnoreCase(params.text()));
+        }
+        if (params.events() != null && !params.events().isEmpty()) {
+            predicate.and(qComment.event.id.in(params.events()));
+        }
+        if (params.rangeStart() != null) {
+            predicate.and(qComment.createdOn.goe(params.rangeStart()));
+        }
+        if (params.rangeEnd() != null) {
+            predicate.and(qComment.createdOn.loe(params.rangeEnd()));
+        }
+
+        List<Comment> comments = commentRepository.findAll(predicate, pageable).getContent();
+
+        return comments.stream()
+                .map(commentMapper::toCommentDto)
+                .toList();
+    }
+
+    @Override
+    public CommentDto getPublishedComment(Long commentId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new NotFoundException("Comment not found with id: " + commentId));
+        if (comment.getStatus() != CommentStatus.PUBLISHED) {
+            throw new NotFoundException("Comment is not published");
+        }
+        return commentMapper.toCommentDto(comment);
+    }
+
+    @Override
+    public List<CommentDto> getPublishedCommentsByEvent(Long eventId) {
+        eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException("Event not found with id: " + eventId));
+
+        QComment qComment = QComment.comment1;
+        BooleanBuilder predicate = new BooleanBuilder();
+        predicate.and(qComment.event.id.eq(eventId));
+        predicate.and(qComment.status.eq(CommentStatus.PUBLISHED));
+
+        List<Comment> comments = new ArrayList<>();
+        commentRepository.findAll(predicate).forEach(comments::add);
+}
+    @Override
     public List<CommentDto> searchComments(AdminCommentSearchFilter filter) {
         log.info("Admin search comment with filter: {}", filter);
 
@@ -171,43 +227,10 @@ public class CommentServiceImpl implements CommentService {
 
         if (filter.status() != null) {
             predicate.and(qComment.status.eq(filter.status()));
-=======
-    public List<CommentDto> getPublishedComments(CommentSearchParams params) {
-        // Проверка дат
-        if (params.rangeStart() != null && params.rangeEnd() != null) {
-            if (params.rangeStart().isAfter(params.rangeEnd())) {
-                throw new IllegalArgumentException("rangeStart не может быть позже rangeEnd");
-            }
-        }
-
-        Sort sortBy = Sort.by("createdOn").descending();
-        if (params.sort() != null && params.sort().equalsIgnoreCase("asc")) {
-            sortBy = Sort.by("createdOn").ascending();
-        }
-        Pageable pageable = PageRequest.of(params.from() / params.size(), params.size(), sortBy);
-
-        // QueryDSL
-        QComment qComment = QComment.comment1;
-        BooleanBuilder predicate = new BooleanBuilder();
-        predicate.and(qComment.status.eq(CommentStatus.PUBLISHED));
-
-        if (params.text() != null && !params.text().isBlank()) {
-            predicate.and(qComment.comment.containsIgnoreCase(params.text()));
-        }
-        if (params.events() != null && !params.events().isEmpty()) {
-            predicate.and(qComment.event.id.in(params.events()));
-        }
-        if (params.rangeStart() != null) {
-            predicate.and(qComment.createdOn.goe(params.rangeStart()));
-        }
-        if (params.rangeEnd() != null) {
-            predicate.and(qComment.createdOn.loe(params.rangeEnd()));
->>>>>>> 0f0ec33 (fix)
         }
 
         List<Comment> comments = commentRepository.findAll(predicate, pageable).getContent();
 
-<<<<<<< HEAD
         if (comments.isEmpty()) {
             return List.of();
         }
@@ -251,63 +274,5 @@ public class CommentServiceImpl implements CommentService {
     private Comment existsComment(Long commentId) {
         return commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException("Comment with id= " + commentId + " was not found"));
-    }
-    @Override
-    public List<CommentDto> getPublishedComments(String text, List<Long> events, String rangeStart, String rangeEnd, int from, int size, String sort) {
-    Sort sortBy = Sort.by("created").descending();
-    if (sort != null && sort.equalsIgnoreCase("asc")) {
-        sortBy = Sort.by("created").ascending();
-    }
-    Pageable pageable = PageRequest.of(from / size, size, sortBy);
-
-    LocalDateTime start = rangeStart != null ? LocalDateTime.parse(rangeStart, FORMATTER) : null;
-    LocalDateTime end = rangeEnd != null ? LocalDateTime.parse(rangeEnd, FORMATTER) : null;
-
-        List<Comment> comments = commentRepository.findPublishedCommentsWithFilters(text, events, start, end, pageable);
-        return comments.stream()
-                .map(commentMapper::toCommentDto)
-                .collect(Collectors.toList());
-=======
-        return comments.stream()
-                .map(commentMapper::toCommentDto)
-                .toList();
->>>>>>> 0f0ec33 (fix)
-    }
-
-    @Override
-    public CommentDto getPublishedComment(Long commentId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("Comment not found with id: " + commentId));
-        if (comment.getStatus() != CommentStatus.PUBLISHED) {
-            throw new NotFoundException("Comment is not published");
-        }
-        return commentMapper.toCommentDto(comment);
-    }
-
-    @Override
-    public List<CommentDto> getPublishedCommentsByEvent(Long eventId) {
-<<<<<<< HEAD
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Event not found with id: " + eventId));
-        List<Comment> comments = commentRepository.findByEventAndStatus(event, CommentStatus.PUBLISHED);
-        return comments.stream()
-                .map(commentMapper::toCommentDto)
-                .collect(Collectors.toList());
-=======
-        eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Event not found with id: " + eventId));
-
-        QComment qComment = QComment.comment1;
-        BooleanBuilder predicate = new BooleanBuilder();
-        predicate.and(qComment.event.id.eq(eventId));
-        predicate.and(qComment.status.eq(CommentStatus.PUBLISHED));
-
-        List<Comment> comments = new ArrayList<>();
-        commentRepository.findAll(predicate).forEach(comments::add);
-
-        return comments.stream()
-                .map(commentMapper::toCommentDto)
-                .toList();
->>>>>>> 0f0ec33 (fix)
     }
 }
