@@ -138,7 +138,7 @@ public class CommentServiceImpl implements CommentService {
 
         Pageable pageable = PageRequest.of(filter.from() / filter.size(), filter.size());
 
-        if (filter.text() != null && !filter.text().isBlank() && !filter.text().equals("0")) {
+        if (filter.text() != null && !filter.text().isBlank()) {
             predicate.and(qComment.comment.containsIgnoreCase(filter.text()));
         }
 
