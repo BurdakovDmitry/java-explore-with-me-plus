@@ -1,5 +1,12 @@
 package ewm.comments.service;
 
+import ewm.comments.dto.CommentDto;
+
+import ewm.comments.dto.PostCommentParam;
+import ewm.comments.dto.UpdateCommentParam;
+
+import java.util.List;
+
 import ewm.comments.dto.AdminCommentSearchFilter;
 import ewm.comments.dto.CommentDto;
 
