@@ -1,13 +1,10 @@
 package ewm.user.controller;
 
-import com.querydsl.core.types.dsl.BooleanExpression;
 import ewm.comments.dto.CommentDto;
 import ewm.comments.dto.PostCommentDto;
 import ewm.comments.dto.PostCommentParam;
 import ewm.comments.dto.UpdateCommentParam;
-import ewm.comments.model.QComment;
 import ewm.comments.service.CommentService;
-import ewm.user.model.QUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
