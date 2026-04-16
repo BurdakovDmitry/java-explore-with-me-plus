@@ -40,7 +40,7 @@ public class AdminCommentController {
 
     @PatchMapping("/{commentId}")
     public CommentDto updateStatusComment(@PathVariable Long commentId,
-                                              @Valid @RequestBody UpdateCommentStatusRequest updateStatus) {
+                                          @Valid @RequestBody UpdateCommentStatusRequest updateStatus) {
         log.info("Patch/admin/comments/{}", commentId);
         return commentService.updateStatusComment(commentId, updateStatus);
     }

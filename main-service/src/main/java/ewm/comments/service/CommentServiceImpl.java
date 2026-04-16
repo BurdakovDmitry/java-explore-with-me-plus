@@ -37,7 +37,6 @@ import java.util.stream.StreamSupport;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class CommentServiceImpl implements CommentService {
-
     private final CommentMapper commentMapper;
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
@@ -190,7 +189,12 @@ public class CommentServiceImpl implements CommentService {
 
         List<Comment> comments = new ArrayList<>();
         commentRepository.findAll(predicate).forEach(comments::add);
-}
+
+        return comments.stream()
+                .map(commentMapper::toCommentDto)
+                .toList();
+    }
+
     @Override
     public List<CommentDto> searchComments(AdminCommentSearchFilter filter) {
         log.info("Admin search comment with filter: {}", filter);

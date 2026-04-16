@@ -17,7 +17,7 @@ public interface CommentService {
 
     void delete(Long userId, Long commentId);
 
-     List<CommentDto> findAllByAuthor(Long userId);
+    List<CommentDto> findAllByAuthor(Long userId);
 
     CommentDto findByIdAndAuthor(Long userId, Long commentId);
 

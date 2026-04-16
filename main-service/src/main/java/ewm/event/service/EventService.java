@@ -32,4 +32,6 @@ public interface EventService {
     EventFullDto updateEventAdmin(Long eventId, UpdateEventAdminRequest dto);
 
     Map<Long, Long> getViewsMap(List<Event> events, boolean unique);
+
+    Event existsEvent(Long eventId);
 }

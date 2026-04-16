@@ -487,8 +487,8 @@
               "        event = await api.publishEvent(event.id); \r",
               "        let comment = await api.addComment(user.id, event.id, rnd.getComment());\r",
               "        comment = await api.updateCommentStatus(comment.id);\r",
-              "        pm.request.removeQueryParams(['users', 'events', `status`]);\r",
-              "        pm.request.addQueryParams([`users=` + user.id, 'events=' + event.id, `status=PUBLISHED`]);\r",
+              "        pm.request.removeQueryParams(['users', 'events', `status`, `text`]);\r",
+              "        pm.request.addQueryParams([`users=` + user.id, 'events=' + event.id, `status=PUBLISHED`, `text=` + comment.comment.substring(0, 10)]);\r",
               "        pm.collectionVariables.set('response', comment);\r",
               "    } catch(err) {\r",
               "        console.error(\"Ошибка при подготовке тестовых данных.\", err);\r",
@@ -1642,6 +1642,10 @@
     },
     {
       "key": "uid",
+      "value": ""
+    },
+    {
+      "key": "response",
       "value": ""
     }
   ]
