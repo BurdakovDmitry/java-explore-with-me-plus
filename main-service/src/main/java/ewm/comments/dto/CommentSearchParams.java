@@ -4,11 +4,10 @@ import jakarta.validation.constraints.Min;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 public record CommentSearchParams(
         String text,
-        List<Long> events,
+        Long eventId,
 
         @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
         LocalDateTime rangeStart,

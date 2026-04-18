@@ -66,7 +66,8 @@ CREATE TABLE IF NOT EXISTS comments(
     status  VARCHAR(20) NOT NULL,
     event_id BIGINT NOT NULL,
     author_id BIGINT NOT NULL,
-    created_on TIMESTAMP WITHOUT TIME ZONE NOT NULL  DEFAULT (CURRENT_TIMESTAMP at time zone ('utc')),
+    created_on TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT (CURRENT_TIMESTAMP at time zone ('utc')),
+    edited_on TIMESTAMP WITHOUT TIME ZONE,
     CONSTRAINT pk_comments PRIMARY KEY (id),
     CONSTRAINT fk_comment_event FOREIGN KEY (event_id) REFERENCES events(id),
     CONSTRAINT fk_comment_author FOREIGN KEY (author_id) REFERENCES users(id)

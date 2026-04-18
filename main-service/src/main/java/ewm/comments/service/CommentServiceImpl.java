@@ -28,7 +28,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
@@ -56,17 +55,15 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentDto update(UpdateCommentParam updCommentParam) {
-        Comment comment = commentRepository.findById(updCommentParam.commentId()).orElseThrow(
-                () -> new NotFoundException(String.format("Comment with id=%d was not found", updCommentParam.commentId())));
-
-        userRepository.findById(updCommentParam.author()).orElseThrow(
-                () -> new NotFoundException(String.format("User with id=%d was not found", updCommentParam.author())));
+        Comment comment = existsComment(updCommentParam.commentId());
+        existsUser(updCommentParam.author());
 
         if (!comment.getAuthor().getId().equals(updCommentParam.author())) {
             throw new NotAuthorized("Comment can be edited only by its author.");
         }
 
         comment.setComment(updCommentParam.comment());
+        comment.setEditedOn(LocalDateTime.now());
         Comment savedComment = commentRepository.save(comment);
         log.info("Updated comment {}", savedComment);
         return commentMapper.toCommentDto(savedComment);
@@ -75,8 +72,7 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public void delete(Long userId, Long commentId) {
-        Comment comment = commentRepository.findById(commentId).orElseThrow(
-                () -> new NotFoundException(String.format("Comment with id=%d was not found", commentId)));
+        Comment comment = existsComment(commentId);
 
         if (!comment.getAuthor().getId().equals(userId)) {
             throw new NotAuthorized("Comment can be deleted only by its author.");
@@ -98,10 +94,8 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public List<CommentDto> findAllByEventAndAuthor(Long userId, Long eventId) {
-        userRepository.findById(userId).orElseThrow(
-                () -> new NotFoundException(String.format("User with id=%d was not found", userId)));
-        eventRepository.findById(eventId).orElseThrow(
-                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId)));
+        existsUser(userId);
+        existsEvent(eventId);
 
         BooleanExpression byEventAndAuthorId = QComment.comment1.author.id.eq(userId)
                 .and(QComment.comment1.event.id.eq(eventId));
@@ -115,10 +109,8 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentDto findByIdAndAuthor(Long userId, Long commentId) {
-        Comment comment = commentRepository.findById(commentId).orElseThrow(
-                () -> new NotFoundException(String.format("Comment with id=%d was not found", commentId)));
-        userRepository.findById(userId).orElseThrow(
-                () -> new NotFoundException(String.format("User with id=%d was not found", userId)));
+        Comment comment = existsComment(commentId);
+        existsUser(userId);
 
         if (!comment.getAuthor().getId().equals(userId)) {
             throw new NotAuthorized("Only author is allowed to see this comment");
@@ -150,8 +142,8 @@ public class CommentServiceImpl implements CommentService {
         if (params.text() != null && !params.text().isBlank()) {
             predicate.and(qComment.comment.containsIgnoreCase(params.text()));
         }
-        if (params.events() != null && !params.events().isEmpty()) {
-            predicate.and(qComment.event.id.in(params.events()));
+        if (params.eventId() != null) {
+            predicate.and(qComment.event.id.eq(params.eventId()));
         }
         if (params.rangeStart() != null) {
             predicate.and(qComment.createdOn.goe(params.rangeStart()));
@@ -169,30 +161,12 @@ public class CommentServiceImpl implements CommentService {
 
     @Override
     public CommentDto getPublishedComment(Long commentId) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("Comment not found with id: " + commentId));
+        Comment comment = existsComment(commentId);
+
         if (comment.getStatus() != CommentStatus.PUBLISHED) {
             throw new NotFoundException("Comment is not published");
         }
         return commentMapper.toCommentDto(comment);
-    }
-
-    @Override
-    public List<CommentDto> getPublishedCommentsByEvent(Long eventId) {
-        eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Event not found with id: " + eventId));
-
-        QComment qComment = QComment.comment1;
-        BooleanBuilder predicate = new BooleanBuilder();
-        predicate.and(qComment.event.id.eq(eventId));
-        predicate.and(qComment.status.eq(CommentStatus.PUBLISHED));
-
-        List<Comment> comments = new ArrayList<>();
-        commentRepository.findAll(predicate).forEach(comments::add);
-
-        return comments.stream()
-                .map(commentMapper::toCommentDto)
-                .toList();
     }
 
     @Override
@@ -217,8 +191,8 @@ public class CommentServiceImpl implements CommentService {
             predicate.and(qComment.author.id.in(filter.users()));
         }
 
-        if (filter.events() != null && !filter.events().isEmpty()) {
-            predicate.and(qComment.event.id.in(filter.events()));
+        if (filter.eventId() != null) {
+            predicate.and(qComment.event.id.eq(filter.eventId()));
         }
 
         if (filter.rangeStart() != null) {
@@ -277,6 +251,16 @@ public class CommentServiceImpl implements CommentService {
 
     private Comment existsComment(Long commentId) {
         return commentRepository.findById(commentId)
-                .orElseThrow(() -> new NotFoundException("Comment with id= " + commentId + " was not found"));
+                .orElseThrow(() -> new NotFoundException(String.format("Comment with id=%d was not found", commentId)));
+    }
+
+    private void existsUser(Long userId) {
+        userRepository.findById(userId).orElseThrow(
+                () -> new NotFoundException(String.format("User with id=%d was not found", userId)));
+    }
+
+    private void existsEvent(Long eventId) {
+        eventRepository.findById(eventId).orElseThrow(
+                () -> new NotFoundException(String.format("Event with id=%d was not found", eventId)));
     }
 }

@@ -27,8 +27,6 @@ public interface CommentService {
 
     CommentDto getPublishedComment(Long commentId);
 
-    List<CommentDto> getPublishedCommentsByEvent(Long eventId);
-
     List<CommentDto> searchComments(AdminCommentSearchFilter filter);
 
     CommentDto findCommentById(Long commentId);

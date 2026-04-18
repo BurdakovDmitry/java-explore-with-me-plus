@@ -53,4 +53,7 @@ public class Comment {
     @Column(name = "created_on", nullable = false)
     @CurrentTimestamp
     private LocalDateTime createdOn;
+
+    @Column(name = "edited_on")
+    private LocalDateTime editedOn;
 }

@@ -24,9 +24,4 @@ public class PublicCommentController {
     public CommentDto getComment(@PathVariable Long commentId) {
         return commentService.getPublishedComment(commentId);
     }
-
-    @GetMapping("/events/{eventId}")
-    public List<CommentDto> getCommentsByEvent(@PathVariable Long eventId) {
-        return commentService.getPublishedCommentsByEvent(eventId);
-    }
 }

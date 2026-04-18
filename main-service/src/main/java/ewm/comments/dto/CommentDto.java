@@ -19,6 +19,9 @@ public record CommentDto(
         UserShortDto author,
 
         @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-        LocalDateTime createdOn
+        LocalDateTime createdOn,
+
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        LocalDateTime editedOn
 ) {
 }

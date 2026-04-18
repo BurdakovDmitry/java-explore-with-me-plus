@@ -10,7 +10,7 @@ import java.util.List;
 public record AdminCommentSearchFilter(
         String text,
         List<Long> users,
-        List<Long> events,
+        Long eventId,
         CommentStatus status,
 
         @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
